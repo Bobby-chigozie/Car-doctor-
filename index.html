@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#081321">
+<title>Bobby Car Doctor</title>
+<script>try{var s=JSON.parse(localStorage.getItem('bcd_settings_v42')||'{}'),r=document.documentElement;if(s.theme)r.setAttribute('data-theme',s.theme);var z={small:'14px',normal:'16px',large:'18px',xl:'20px'}[s.size];if(z)r.style.fontSize=z;}catch(e){}</script>
+<link rel="stylesheet" href="style.css"></head><body><script>
+/* Startup check (plain old JavaScript so any WebView can run it). Shows a red box only if a file fails to load. */
+(function(){
+  var box=null;
+  function show(t){try{if(!box){box=document.createElement('pre');box.id='acdErr';box.style.cssText='white-space:pre-wrap;word-break:break-word;background:#3a1010;color:#ffd0d0;border:1px solid #ff7b7b;border-radius:10px;padding:8px;margin:8px;font-size:12px;position:relative;z-index:900';document.body.insertBefore(box,document.body.firstChild);}box.textContent+=t+'\n';}catch(e){}}
+  window.acdFlags={};
+  window.addEventListener('error',function(e){var t=e.target;if(t&&t.src&&t!==window){show('File did not load: '+t.src.split('/').pop());}else{show('Script error: '+e.message+' ('+String(e.filename||'').split('/').pop()+':'+e.lineno+')');}},true);
+  window.addEventListener('unhandledrejection',function(e){show('Error: '+(e.reason&&e.reason.message?e.reason.message:e.reason));});
+  setTimeout(function(){try{
+    var f=window.acdFlags,ua=navigator.userAgent||'',m=ua.match(/Chrome\/(\d+)/);
+    if(new URLSearchParams(location.search).get('debug')!=='1' && localStorage.getItem('bcd_debug')!=='1') return; var line=document.createElement('p');line.id='acdDebugBar';line.style.cssText='position:fixed;left:0;right:0;bottom:68px;z-index:9999;margin:0;padding:4px 8px;font-size:10px;line-height:1.3;color:#cfe0f0;background:rgba(0,0,0,.88);pointer-events:none';
+    line.textContent='Build 4.3 | WebView '+(m?m[1]:'?')+' | app.js: '+(f.app?'ok':'NOT RUNNING')+' | database: '+(f.db?'ok':'not loaded')+' | scanner: '+(f.scan?'ok':'not running')+' | native: '+((window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())?'yes':'no');
+    document.body.appendChild(line);
+  }catch(e){}},3000);
+})();
+</script>
+<header class="topbar">
+  <button class="icon-btn" id="backBtn" type="button" aria-label="Back" hidden>‹</button>
+  <img class="tb-logo" id="tbLogo" src="logo.png" alt="">
+  <h1 id="screenTitle">Bobby Car Doctor</h1>
+  <span class="grow"></span>
+  <span id="voltPill" class="volt-pill off native-only" hidden role="button" aria-label="Open battery screen"><b>—</b> V <small>No link</small></span>
+  <button class="icon-btn" id="settingsBtn" type="button" aria-label="Settings">⚙</button>
+  <button class="icon-btn" id="appInfoBtn" type="button" aria-label="About this app">ⓘ</button>
+  <div id="liveStrip" class="live-strip native-only" hidden>
+    <button class="lchip c-speed" data-go="live" type="button"><small>Speed</small><span><b id="lcSpeed">—</b><i id="luSpeed">km/h</i></span></button>
+    <button class="lchip c-rpm" data-go="live" type="button"><small>Engine</small><span><b id="lcRpm">—</b><i>rpm</i></span></button>
+    <button class="lchip c-temp" id="lcTempChip" data-go="live" type="button"><small>Coolant</small><span><b id="lcTemp">—</b><i id="luTemp">°C</i></span></button>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+
+<section class="screen active" id="s-home" data-title="Bobby Car Doctor">
+  <div class="hero"><img class="hero-logo" src="logo.png" alt="Bobby Car Doctor"><div><h2>Bobby Car Doctor</h2><p class="muted">Fault codes made simple</p></div></div>
+  <div class="tiles">
+    <button class="tile t-primary" data-go="diagnose" type="button"><span class="ti">🔎</span><b>Diagnose</b><small>Look up any code</small></button>
+    <button class="tile native-only" data-go="scan" type="button"><span class="ti">🔌</span><b>Scan car</b><small>Read codes</small></button>
+    <button class="tile native-only" data-go="live" type="button"><span class="ti">🔋</span><b>Battery</b><small>Live voltage</small></button>
+    <button class="tile" data-go="history" type="button"><span class="ti">🕘</span><b>History</b><small>Past reports</small></button>
+    <button class="tile" data-go="settings" type="button"><span class="ti">⚙️</span><b>Settings</b><small>Options and looks</small></button>
+    <button class="tile" id="lastReportTile" data-go="results" type="button" hidden><span class="ti">📄</span><b>Last report</b><small>Open again</small></button>
+  </div>
+  <p class="tip" id="homeTips" hidden>💡 Type a code, then tap <b>Smart Fix</b> for step-by-step checks. Tap <b>ⓘ</b> any time for help.</p>
+  <p class="muted small center footer-count"><span id="dbCount"></span></p>
+</section>
+
+<section class="screen" id="s-diagnose" data-title="Diagnose">
+  <div class="card">
+    <div class="grid">
+      <div class="field"><label for="make">Make</label><select id="make"><option value="">Select make</option></select></div>
+      <div class="field"><label for="model">Model</label><select id="model" disabled><option value="">Make first</option></select></div>
+      <div class="field"><label for="year">Year</label><input id="year" inputmode="numeric" maxlength="4" placeholder="Optional"></div>
+      <div class="field"><label for="engine">Engine</label><input id="engine" placeholder="Optional"></div>
+    </div>
+    <div class="field" style="margin-top:13px"><label for="codes">Code(s)</label><input id="codes" autocapitalize="characters" autocomplete="off" placeholder="P0301 or P0301, P0171"></div>
+    <div class="chips" id="quickCodes" aria-label="Common codes"></div>
+    <details class="compact-details"><summary>Add symptoms</summary><textarea id="symptoms" rows="2" placeholder="e.g. shaking, weak acceleration, hard starting"></textarea></details>
+    <div class="actions"><button class="primary" id="runBtn" type="button">Diagnose</button></div>
+    <div class="actions"><button class="secondary" id="sampleBtn" type="button">Try sample</button><button class="secondary" id="clearBtn" type="button">Clear</button></div>
+    <p id="status" class="hint" role="status"></p>
+  </div>
+</section>
+
+<section class="screen" id="s-results" data-title="Report">
+  <div id="resultsEmpty" class="empty"><p class="muted">No report yet.</p><button class="primary" data-go="diagnose" type="button">Diagnose a code</button></div>
+  <div id="resultsBox" hidden>
+    <p id="vehicleSummary" class="muted center"></p>
+    <div id="reportContent"></div>
+    <p class="safety-line small muted">A code is a clue, not proof that a part has failed. Test before replacing parts.</p>
+    <div class="actions"><button class="primary" data-go="share" type="button">📤 Share report</button><button class="secondary" id="copyBtn" type="button">Copy</button></div>
+  </div>
+</section>
+
+<section class="screen" id="s-fix" data-title="Smart Fix"><div id="fixBody"></div></section>
+<section class="screen" id="s-details" data-title="Details"><div id="detailsBody"></div></section>
+
+<section class="screen" id="s-share" data-title="Share report">
+  <div class="card">
+    <p class="muted small" style="margin-top:0">This is what will be sent. Pick how to send it.</p>
+    <textarea id="shareText" rows="9" readonly></textarea>
+    <div class="actions"><button class="primary" id="shareNowBtn" type="button">📤 Share…</button></div>
+    <div class="actions"><a class="btn-link wa" id="waBtn" href="https://wa.me/" target="_blank" rel="noopener">WhatsApp</a><a class="btn-link" id="smsBtn" href="sms:">SMS text</a></div>
+    <div class="actions"><button class="secondary" id="copyShareBtn" type="button">Copy</button><button class="secondary" id="fileBtn" type="button">Send as file</button></div>
+    <p id="shareStatus" class="hint" role="status"></p>
+    <p class="muted small">“Share…” opens your phone’s share menu: WhatsApp, Bluetooth, Gmail, Google, AI apps and more. “SMS text” sends a short version to a basic phone. “Send as file” sends a .txt file, for example by Bluetooth.</p>
+  </div>
+</section>
+
+<section class="screen native-only" id="s-scan" data-title="Scan car"><div class="card" id="scanMount"></div></section>
+<section class="screen native-only" id="s-live" data-title="Battery"><div id="dash" class="dash"></div><div class="card" id="liveMount"></div></section>
+
+<section class="screen" id="s-history" data-title="History">
+  <div id="historyList"></div>
+  <div class="actions"><button class="secondary" id="clearHistoryBtn" type="button">Clear history</button></div>
+  <p class="muted small center">Kept on this phone only. Entries expire after 7 days (20 reports max).</p>
+</section>
+
+<section class="screen" id="s-settings" data-title="Settings"><div id="settingsBody"></div></section>
+
+</main>
+
+<nav class="bottom-nav" aria-label="Main navigation">
+  <button class="nav-item active" data-nav="home" type="button"><span>⌂</span>Home</button>
+  <button class="nav-item" data-nav="diagnose" type="button"><span>🔎</span>Diagnose</button>
+  <button class="nav-item native-only" data-nav="scan" type="button"><span>🔌</span>Scan</button>
+  <button class="nav-item native-only" data-nav="live" type="button"><span>🔋</span>Battery</button>
+  <button class="nav-item" data-nav="history" type="button"><span>🕘</span>History</button>
+</nav>
+
+<div class="sheet" id="infoSheet" hidden role="dialog" aria-modal="true" aria-label="About this app"><div class="sheet-card"><div class="sheet-head"><h2>About</h2><button class="icon-btn" id="infoClose" type="button" aria-label="Close">✕</button></div><div id="infoBody"></div></div></div>
+<div class="sheet" id="tour" hidden role="dialog" aria-modal="true" aria-label="Quick tour"><div class="sheet-card tour-card"><div id="tourBody"></div><div class="dots" id="tourDots"></div><div class="actions"><button class="secondary" id="tourSkip" type="button">Skip</button><button class="primary" id="tourNext" type="button">Next</button></div></div></div>
+
+<script src="app.js" defer></script></body></html>

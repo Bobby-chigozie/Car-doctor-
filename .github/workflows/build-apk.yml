@@ -1,0 +1,65 @@
+name: Build Bobby Car Doctor APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check scanner.js
+          node --check obd.js
+          node --check patch.js
+
+      - name: Prepare offline web files
+        run: node patch.js prepare
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Register native Bluetooth plugin, permissions, app name and icon
+        run: node patch.js android
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Install Android SDK components
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bobby-Car-Doctor-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
