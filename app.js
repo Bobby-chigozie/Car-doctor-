@@ -28,7 +28,7 @@ const $ = id => document.getElementById(id);
 const make = $('make'), model = $('model'), codeInput = $('codes'), statusBox = $('status'), report = $('reportContent');
 const isNative = !!(window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform());
 document.body.classList.toggle('native', isNative);
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.3.1';
 
 function opt(label, value = label) { const o = document.createElement('option'); o.textContent = label; o.value = value; return o; }
 Object.keys(VEHICLES).sort().forEach(m => make.appendChild(opt(m)));
@@ -383,6 +383,12 @@ function renderQuick() {
 }
 
 /* ======================= SHARE ======================= */
+function nativePlugin(name) {
+  const C = window.Capacitor;
+  if (C && C.Plugins && C.Plugins[name]) return C.Plugins[name];
+  if (C && typeof C.registerPlugin === 'function') return C.registerPlugin(name);
+  throw new Error(name + ' is not available');
+}
 function reportText(short) {
   if (!lastReport) return '';
   const when = new Date(lastReport.time).toLocaleString();
@@ -408,7 +414,7 @@ const sstat = t => { $('shareStatus').textContent = t; };
 async function shareSheet() {
   const text = reportText(false);
   if (isNative) {
-    try { await Capacitor.registerPlugin('Share').share({ title: 'Bobby Car Doctor report', text, dialogTitle: 'Share report' }); sstat('Share menu opened.'); return; }
+    try { await nativePlugin('Share').share({ title: 'Bobby Car Doctor report', text, dialogTitle: 'Share report' }); sstat('Share menu opened.'); return; }
     catch (e) { if (/cancel/i.test(String(e && e.message))) return; }
   }
   if (navigator.share) { try { await navigator.share({ title: 'Bobby Car Doctor report', text }); sstat('Share menu opened.'); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
@@ -418,8 +424,8 @@ async function shareFile() {
   const text = reportText(false), name = 'Bobby-Car-Doctor-report.txt';
   if (isNative) {
     try {
-      const r = await Capacitor.registerPlugin('Filesystem').writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
-      await Capacitor.registerPlugin('Share').share({ title: 'Bobby Car Doctor report', files: [r.uri], dialogTitle: 'Send report file' });
+      const r = await nativePlugin('Filesystem').writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
+      await nativePlugin('Share').share({ title: 'Bobby Car Doctor report', files: [r.uri], dialogTitle: 'Send report file' });
       sstat('File ready to send.'); return;
     } catch (e) { if (/cancel/i.test(String(e && e.message))) return; sstat('Could not make the file here: ' + (e && e.message ? e.message : e)); return; }
   }

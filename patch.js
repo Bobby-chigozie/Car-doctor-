@@ -57,28 +57,54 @@ public class MainActivity extends BridgeActivity {
     }
   } catch (e) { console.log('WARNING: could not set app name: ' + e.message); }
 
-  // ----- App icon: the Bobby logo (needs ImageMagick "convert", which the GitHub runner has) -----
-  // If anything fails, the build still succeeds and keeps the default icon.
+  // ----- App icon: the Bobby Car Doctor logo (ready-made PNGs from the icons/ folder, no image tools needed) -----
+  // If anything fails the build still succeeds and keeps the default icon.
   try {
-    const { execFileSync } = require('child_process');
     const res = 'android/app/src/main/res';
-    const sizes = { mdpi: [48, 108], hdpi: [72, 162], xhdpi: [96, 216], xxhdpi: [144, 324], xxxhdpi: [192, 432] }; // [old-style icon, adaptive foreground]
-    for (const d of Object.keys(sizes)) {
-      const dir = path.join(res, 'mipmap-' + d);
-      fs.mkdirSync(dir, { recursive: true });
-      const small = sizes[d][0] + 'x' + sizes[d][0], fg = sizes[d][1], inner = Math.round(fg * 0.62);
-      execFileSync('convert', ['logo.png', '-resize', small, path.join(dir, 'ic_launcher.png')]);
-      execFileSync('convert', ['logo.png', '-resize', small, path.join(dir, 'ic_launcher_round.png')]);
-      execFileSync('convert', ['logo.png', '-resize', inner + 'x' + inner, '-background', 'none', '-gravity', 'center', '-extent', fg + 'x' + fg, path.join(dir, 'bobby_icon_fg.png')]);
+    if (!fs.existsSync('icons')) throw new Error('icons folder is missing');
+    let copied = 0;
+    for (const d of fs.readdirSync('icons')) {
+      const from = path.join('icons', d);
+      if (!fs.statSync(from).isDirectory()) continue;
+      const to = path.join(res, d);
+      fs.mkdirSync(to, { recursive: true });
+      for (const f of fs.readdirSync(from)) { fs.copyFileSync(path.join(from, f), path.join(to, f)); copied++; }
     }
+    if (!copied) throw new Error('no icon files found');
     fs.mkdirSync(path.join(res, 'values'), { recursive: true });
-    fs.writeFileSync(path.join(res, 'values', 'bobby_icon.xml'), '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="bobby_icon_bg">#06152E</color>\n</resources>\n');
+    fs.writeFileSync(path.join(res, 'values', 'bobby_icon.xml'), '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="bobby_icon_bg">#020B1A</color>\n</resources>\n');
     const adaptive = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n    <background android:drawable="@color/bobby_icon_bg"/>\n    <foreground android:drawable="@mipmap/bobby_icon_fg"/>\n</adaptive-icon>\n';
     fs.mkdirSync(path.join(res, 'mipmap-anydpi-v26'), { recursive: true });
     fs.writeFileSync(path.join(res, 'mipmap-anydpi-v26', 'ic_launcher.xml'), adaptive);
     fs.writeFileSync(path.join(res, 'mipmap-anydpi-v26', 'ic_launcher_round.xml'), adaptive);
-    console.log('app icon set from logo.png');
+    console.log('app icon set from icons/ (' + copied + ' files)');
   } catch (e) { console.log('WARNING: app icon not changed (' + e.message + '). The build continues with the default icon.'); }
+
+  // ----- Launch screen: pure black, the round logo small in the centre, nothing stretched -----
+  try {
+    const res = 'android/app/src/main/res';
+    // remove Capacitor's default splash pictures (they would override ours or clash with it)
+    const walk = dir => { for (const f of fs.readdirSync(dir)) { const p = path.join(dir, f); if (fs.statSync(p).isDirectory()) walk(p); else if (/^splash\.(png|jpg|xml)$/.test(f)) { fs.unlinkSync(p); } } };
+    walk(res);
+    fs.mkdirSync(path.join(res, 'drawable'), { recursive: true });
+    fs.writeFileSync(path.join(res, 'drawable', 'splash.xml'),
+'<?xml version="1.0" encoding="utf-8"?>\n<layer-list xmlns:android="http://schemas.android.com/apk/res/android">\n    <item android:drawable="@color/bobby_splash_bg"/>\n    <item>\n        <bitmap android:src="@drawable/splash_logo" android:gravity="center"/>\n    </item>\n</layer-list>\n');
+    const cf = path.join(res, 'values', 'bobby_icon.xml');
+    let cx = fs.readFileSync(cf, 'utf8');
+    if (!cx.includes('bobby_splash_bg')) cx = cx.replace('</resources>', '    <color name="bobby_splash_bg">#000000</color>\n</resources>');
+    fs.writeFileSync(cf, cx);
+    // Android 12+ and the compat splash: black background and our logo
+    const sf2 = path.join(res, 'values', 'styles.xml');
+    if (fs.existsSync(sf2)) {
+      let st = fs.readFileSync(sf2, 'utf8');
+      const m = st.match(/<style name="AppTheme\.NoActionBarLaunch"[^>]*parent="([^"]*)"[^>]*>/);
+      if (m && /Theme\.SplashScreen/.test(m[1]) && !st.includes('windowSplashScreenBackground')) {
+        st = st.replace(m[0], m[0] + '\n        <item name="windowSplashScreenBackground">@color/bobby_splash_bg</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>');
+        fs.writeFileSync(sf2, st);
+      }
+    }
+    console.log('launch screen set (black, centred logo)');
+  } catch (e) { console.log('WARNING: launch screen not changed (' + e.message + ').'); }
 
   console.log('android project patched');
 } else {
