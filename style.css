@@ -161,3 +161,6 @@ body.hide-safety .safety-line{display:none}
 .g-val{fill:none;stroke:var(--accent);stroke-width:9;stroke-linecap:round;transition:stroke-dasharray .3s ease,stroke .3s}
 .g-val.red{stroke:var(--red-bd)}.g-val.amber{stroke:var(--amb-bd)}.g-val.green{stroke:var(--grn-bd)}.g-val.blue{stroke:var(--blu-bd)}.g-val.grey{stroke:var(--line)}
 .g-num{fill:var(--text);font-size:25px;font-weight:800;text-anchor:middle;font-variant-numeric:tabular-nums}.g-unit{fill:var(--text);opacity:.7;font-size:11px;text-anchor:middle}.g-label{fill:var(--text);opacity:.85;font-size:11px;font-weight:700;text-anchor:middle;letter-spacing:.06em;text-transform:uppercase}
+
+/* 4.4 bigger logo on Home */
+.hero{flex-direction:column;text-align:center;padding:4px 4px 16px}.hero-logo{width:min(62vw,230px);height:auto;aspect-ratio:1;filter:drop-shadow(0 0 22px rgba(53,200,255,.3))}.hero h2{font-size:1.5rem}

@@ -44,7 +44,16 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   const sel = $('adapterSel'), btn = $('scanBtn'), statusEl = $('scanStatus'), logEl = $('scanLog');
   const pill = $('voltPill');
   if (pill) pill.hidden = false;
-  const Obd = Capacitor.registerPlugin('ObdBluetooth');
+  // Plugin lookup that works with or without the Capacitor helper library.
+  function getPlugin(name) {
+    const C = window.Capacitor;
+    if (C && C.Plugins && C.Plugins[name]) return C.Plugins[name];
+    if (C && typeof C.registerPlugin === 'function') return C.registerPlugin(name);
+    throw new Error(name + ' is not available in this app build');
+  }
+  let Obd = null;
+  try { Obd = getPlugin('ObdBluetooth'); } catch (e) { /* shown below */ }
+  if (!Obd) { statusEl.textContent = 'The Bluetooth part did not load in this build. Please send a screenshot of this message to the developer.'; statusEl.style.color = '#ffb4a8'; return; }
   let OBD = window.OBD, busy = false, connectedAddr = null, connectedTr = null, isCan = null;
   let pumpTimer = null, pumpRunning = false, pumpOn = false, liveOn = false, fast = false, voltFails = 0, voltSource = 'adapter';
   let reconnectTries = 0, reconnectTimer = null, wantLink = false, liveIdx = 0, liveMisses = 0, liveBlank = 0;
