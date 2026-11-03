@@ -61,14 +61,17 @@ public class MainActivity extends BridgeActivity {
   // If anything fails the build still succeeds and keeps the default icon.
   try {
     const res = 'android/app/src/main/res';
-    if (!fs.existsSync('icons')) throw new Error('icons folder is missing');
+    // Be forgiving about folder names typed by hand on a phone ("icons " with a space, "midmap-hdpi", "xxxhdpi"...)
+    const iconsDir = fs.readdirSync('.').find(n => n.trim().toLowerCase() === 'icons' && fs.statSync(n).isDirectory());
+    if (!iconsDir) throw new Error('icons folder is missing');
+    const norm = n => { n = n.trim().toLowerCase().replace(/^midmap/, 'mipmap'); if (/^(m|h|xh|xxh|xxxh)dpi$/.test(n)) n = 'mipmap-' + n; return n; };
     let copied = 0;
-    for (const d of fs.readdirSync('icons')) {
-      const from = path.join('icons', d);
+    for (const d of fs.readdirSync(iconsDir)) {
+      const from = path.join(iconsDir, d);
       if (!fs.statSync(from).isDirectory()) continue;
-      const to = path.join(res, d);
+      const to = path.join(res, norm(d));
       fs.mkdirSync(to, { recursive: true });
-      for (const f of fs.readdirSync(from)) { fs.copyFileSync(path.join(from, f), path.join(to, f)); copied++; }
+      for (const f of fs.readdirSync(from)) { fs.copyFileSync(path.join(from, f), path.join(to, f.trim())); copied++; }
     }
     if (!copied) throw new Error('no icon files found');
     fs.mkdirSync(path.join(res, 'values'), { recursive: true });
@@ -83,6 +86,7 @@ public class MainActivity extends BridgeActivity {
   // ----- Launch screen: pure black, the round logo small in the centre, nothing stretched -----
   try {
     const res = 'android/app/src/main/res';
+    if (!fs.existsSync(path.join(res, 'drawable-nodpi', 'splash_logo.png'))) throw new Error('splash_logo.png was not found, so the default launch screen is kept');
     // remove Capacitor's default splash pictures (they would override ours or clash with it)
     const walk = dir => { for (const f of fs.readdirSync(dir)) { const p = path.join(dir, f); if (fs.statSync(p).isDirectory()) walk(p); else if (/^splash\.(png|jpg|xml)$/.test(f)) { fs.unlinkSync(p); } } };
     walk(res);
