@@ -92,7 +92,7 @@ public class MainActivity extends BridgeActivity {
     walk(res);
     fs.mkdirSync(path.join(res, 'drawable'), { recursive: true });
     fs.writeFileSync(path.join(res, 'drawable', 'splash.xml'),
-'<?xml version="1.0" encoding="utf-8"?>\n<layer-list xmlns:android="http://schemas.android.com/apk/res/android">\n    <item android:drawable="@color/bobby_splash_bg"/>\n    <item>\n        <bitmap android:src="@drawable/splash_logo" android:gravity="center"/>\n    </item>\n</layer-list>\n');
+'<?xml version="1.0" encoding="utf-8"?>\n<layer-list xmlns:android="http://schemas.android.com/apk/res/android">\n    <item android:drawable="@color/bobby_splash_bg"/>\n    <item android:width="240dp" android:height="240dp" android:gravity="center">\n        <bitmap android:src="@drawable/splash_logo" android:gravity="fill"/>\n    </item>\n</layer-list>\n');
     const cf = path.join(res, 'values', 'bobby_icon.xml');
     let cx = fs.readFileSync(cf, 'utf8');
     if (!cx.includes('bobby_splash_bg')) cx = cx.replace('</resources>', '    <color name="bobby_splash_bg">#000000</color>\n</resources>');
