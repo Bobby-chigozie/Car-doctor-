@@ -164,3 +164,8 @@ body.hide-safety .safety-line{display:none}
 
 /* 4.4 bigger logo on Home */
 .hero{flex-direction:column;text-align:center;padding:4px 4px 16px}.hero-logo{width:min(62vw,230px);height:auto;aspect-ratio:1;filter:drop-shadow(0 0 22px rgba(53,200,255,.3))}.hero h2{font-size:1.5rem}
+
+/* demo mode */
+.demo-bar{flex:0 0 100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--amb-bg);color:var(--amb-fg);border:1px solid var(--amb-bd);border-radius:10px;padding:4px 10px;font-size:.78rem;font-weight:800}
+.demo-bar button{padding:3px 10px;font-size:.75rem;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.demo-note{background:var(--amb-bg);color:var(--amb-fg);border:1px solid var(--amb-bd);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-weight:700;font-size:.9rem}

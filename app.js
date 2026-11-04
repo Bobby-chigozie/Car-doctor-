@@ -18,7 +18,8 @@ try { window.acdFlags && (window.acdFlags.app = 1); } catch (e) { /* ignore */ }
   startApp();
   if (typeof DTC_DATABASE !== 'undefined') dbReady();
   else load('dtc-database.js', dbReady, () => say('Database file dtc-database.js did not load. Put it in the same folder as index.html.'));
-  if (isNative) load('obd.js', () => load('scanner.js'), () => load('scanner.js'));
+  let demoQ = false; try { demoQ = new URLSearchParams(location.search).get('demo') === '1'; } catch (e) { /* ignore */ }
+  if (isNative || demoQ) load('obd.js', () => load('scanner.js'), () => load('scanner.js'));
 })();
 
 function startApp() {
@@ -27,7 +28,9 @@ const VEHICLES = {"Acura":["ILX","MDX","RDX","TL","TLX","TSX","Integra"],"Audi":
 const $ = id => document.getElementById(id);
 const make = $('make'), model = $('model'), codeInput = $('codes'), statusBox = $('status'), report = $('reportContent');
 const isNative = !!(window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform());
-document.body.classList.toggle('native', isNative);
+let demoParam = false; try { demoParam = new URLSearchParams(location.search).get('demo') === '1'; } catch (e) { /* ignore */ }
+const appMode = isNative || demoParam;   // scanner screens exist in the installed app (or in a browser with ?demo=1)
+document.body.classList.toggle('native', appMode);
 const APP_VERSION = '4.3.1';
 
 function opt(label, value = label) { const o = document.createElement('option'); o.textContent = label; o.value = value; return o; }
@@ -174,7 +177,7 @@ function vehicleLine() {
 /* ======================= SETTINGS (colours, text, font) ======================= */
 const SKEY = 'bcd_settings_v42';
 const DEF = { theme: 'dark', size: 'normal', color: 'auto', font: 'default', tips: false, safety: true, motion: true, speedU: 'kmh', tempU: 'c', pressU: 'kpa', autoLive: true, strip: true };
-let showApp = isNative; try { showApp = isNative || new URLSearchParams(location.search).get('debug') === '1' || localStorage.getItem('bcd_debug') === '1'; } catch (e) { /* ignore */ }
+let showApp = appMode; try { showApp = appMode || new URLSearchParams(location.search).get('debug') === '1' || localStorage.getItem('bcd_debug') === '1'; } catch (e) { /* ignore */ }
 const THEMES = [
   ['dark', 'Dark blue', '#0d2035', '#35c8ff'], ['black', 'Pure black', '#000000', '#35c8ff'], ['light', 'Light', '#ffffff', '#0a6fb4'],
   ['sand', 'Sand', '#fffaf0', '#b36b00'], ['forest', 'Forest', '#0d241a', '#43dd8c'], ['purple', 'Purple', '#1c1233', '#b98cff'],
@@ -274,16 +277,16 @@ const HISTORY_LIMIT = 20;
 function readHistory() {
   try { const arr = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); const clean = arr.filter(x => x && x.time && Date.now() - x.time < HISTORY_TTL).slice(0, HISTORY_LIMIT); localStorage.setItem(HISTORY_KEY, JSON.stringify(clean)); return clean; } catch (e) { return []; }
 }
-function saveHistory(codes) {
+function saveHistory(codes, demo) {
   try {
     const old = readHistory();
-    old.unshift({ time: Date.now(), make: make.value, model: model.value, year: $('year').value.trim(), engine: $('engine').value.trim(), vehicle: vehicleLine() || 'Vehicle not specified', codes: codes.slice(0, 12), symptoms: $('symptoms').value.trim().slice(0, 300) });
+    old.unshift({ time: Date.now(), make: make.value, model: model.value, year: $('year').value.trim(), engine: $('engine').value.trim(), vehicle: vehicleLine() || 'Vehicle not specified', demo: !!demo, codes: codes.slice(0, 12), symptoms: $('symptoms').value.trim().slice(0, 300) });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(old.slice(0, HISTORY_LIMIT)));
   } catch (e) { /* storage is optional; never block diagnosis */ }
 }
 function renderHistory() {
   const list = $('historyList'), h = readHistory();
-  list.innerHTML = h.length ? h.map((x, i) => `<div class="history-entry"><strong>${esc(x.codes.join(', '))}</strong><p class="muted small">${esc(x.vehicle)} · ${new Date(x.time).toLocaleString()}</p><button class="secondary history-open" data-index="${i}" type="button">Open this report</button></div>`).join('') : '<div class="empty"><p class="muted">No recent reports on this phone.</p></div>';
+  list.innerHTML = h.length ? h.map((x, i) => `<div class="history-entry"><strong>${x.demo ? '🎬 DEMO · ' : ''}${esc(x.codes.join(', '))}</strong><p class="muted small">${esc(x.vehicle)} · ${new Date(x.time).toLocaleString()}</p><button class="secondary history-open" data-index="${i}" type="button">Open this report</button></div>`).join('') : '<div class="empty"><p class="muted">No recent reports on this phone.</p></div>';
 }
 function setSel(sel, val) { if (val) sel.value = val; }
 
@@ -316,7 +319,7 @@ function show(name, arg) {
 }
 function route() {
   let { name, arg } = parseHash();
-  if (NATIVE_ONLY.includes(name) && !isNative) name = 'home';
+  if (NATIVE_ONLY.includes(name) && !appMode) name = 'home';
   if ((name === 'fix' || name === 'details') && !arg) name = 'results';
   show(name, arg);
 }
@@ -348,8 +351,9 @@ function diagnose() {
     if (year && !/^(19|20)\d{2}$/.test(year)) warn = 'Note: "' + year + '" does not look like a 4-digit year.';
     else if (year && +year < 1996) warn = 'Note: vehicles before about 1996 may not use standard OBD-II codes.';
     for (const k in doneSteps) delete doneSteps[k];
-    lastReport = { codes, vehicle: vehicleLine() || 'Vehicle not specified', symptoms: $('symptoms').value.trim(), time: Date.now() };
-    saveHistory(codes);
+    lastReport = { codes, vehicle: vehicleLine() || 'Vehicle not specified', symptoms: $('symptoms').value.trim(), time: Date.now(), demo: !!window.acdDemoScan };
+    window.acdDemoScan = false;
+    saveHistory(codes, !!lastReport.demo);
     const known = codes.filter(c => DB()[c]).length;
     statusBox.textContent = `${codes.length} code(s) processed offline (${known} in the database, ${codes.length - known} not).` + (warn ? ' ' + warn : '');
     $('lastReportTile').hidden = false;
@@ -360,8 +364,8 @@ function renderResultsScreen() {
   const has = !!lastReport;
   $('resultsEmpty').hidden = has; $('resultsBox').hidden = !has;
   if (!has) return;
-  $('vehicleSummary').textContent = lastReport.vehicle;
-  report.innerHTML = (lastReport.symptoms ? `<div class="section"><h3>Reported symptoms</h3><p>${esc(lastReport.symptoms)}</p></div>` : '') + lastReport.codes.map(card).join('');
+  $('vehicleSummary').textContent = lastReport.vehicle + (lastReport.demo ? ' · DEMO' : '');
+  report.innerHTML = (lastReport.demo ? '<div class="demo-note">🎬 DEMO: simulated codes from the demo car. This is not a real scan.</div>' : '') + (lastReport.symptoms ? `<div class="section"><h3>Reported symptoms</h3><p>${esc(lastReport.symptoms)}</p></div>` : '') + lastReport.codes.map(card).join('');
 }
 $('runBtn').addEventListener('click', diagnose);
 codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); diagnose(); } });
@@ -392,12 +396,13 @@ function nativePlugin(name) {
 function reportText(short) {
   if (!lastReport) return '';
   const when = new Date(lastReport.time).toLocaleString();
-  if (short) return 'Bobby Car Doctor: ' + lastReport.vehicle + ' | ' + lastReport.codes.map(c => c + ' ' + getCode(c).title + ' (' + urgencyFor(c, getCode(c)).label + ')').join('; ') + '. Possible causes only; have a mechanic confirm.';
+  const demoTag = lastReport.demo ? '*** DEMO: SIMULATED DATA, NOT FROM A REAL CAR ***\n' : '';
+  if (short) return demoTag.replace(/\n$/, ' ') + 'Bobby Car Doctor: ' + lastReport.vehicle + ' | ' + lastReport.codes.map(c => c + ' ' + getCode(c).title + ' (' + urgencyFor(c, getCode(c)).label + ')').join('; ') + '. Possible causes only; have a mechanic confirm.';
   const lines = lastReport.codes.map(c => {
     const d = getCode(c), u = urgencyFor(c, d);
     return '• ' + c + ' — ' + d.title + '\n   ' + u.label + '. ' + u.text;
   });
-  return 'BOBBY CAR DOCTOR — report\nVehicle: ' + lastReport.vehicle + '\nDate: ' + when + (lastReport.symptoms ? '\nSymptoms: ' + lastReport.symptoms : '') + '\n\nCodes:\n' + lines.join('\n\n') + '\n\nThese are possible causes, not a confirmed diagnosis. A mechanic should confirm before parts are replaced.';
+  return demoTag + 'BOBBY CAR DOCTOR — report\nVehicle: ' + lastReport.vehicle + '\nDate: ' + when + (lastReport.symptoms ? '\nSymptoms: ' + lastReport.symptoms : '') + '\n\nCodes:\n' + lines.join('\n\n') + '\n\nThese are possible causes, not a confirmed diagnosis. A mechanic should confirm before parts are replaced.';
 }
 function renderShare() {
   if (!lastReport) { goTab('results'); return; }
@@ -448,7 +453,7 @@ function openInfo() {
   $('infoBody').innerHTML =
     '<h3>What this app does</h3><p>Enter a trouble code and get the meaning, possible causes, checks and repair direction, all offline.</p>' +
     '<h3>How to use it</h3><p>1. Tap <b>Diagnose</b>, type a code.<br>2. Open <b>Smart Fix</b> for step-by-step checks, or <b>Details</b> for the full notes.<br>3. Tap <b>Share report</b> to send it.</p>' +
-    (isNative ? '<h3>Scan car</h3><p>Plug a Bluetooth OBD-II adapter into the car, turn the ignition on, then use <b>Scan car</b>. The battery voltage shows at the top right once connected. Nothing is cleared unless you confirm.</p>' : '') +
+    (appMode ? '<h3>Scan car</h3><p>Plug a Bluetooth OBD-II adapter into the car, turn the ignition on, then use <b>Scan car</b>. The battery voltage shows at the top right once connected. Nothing is cleared unless you confirm.</p><h3>Which adapters work</h3><p>Standard <b>ELM327</b> Bluetooth adapters. Adapters from Launch, GOLO, DiagZone and similar brands use a private language and are not supported. Tap <b>Demo mode</b> on the Scan screen to see how the app works without a car (simulated data, clearly labelled).</p>' : '') +
     '<h3>Important notice</h3><p>This is an offline reference. It gives possible causes, not a confirmed diagnosis. Meanings of manufacturer-specific codes depend on the exact vehicle. Confirm with service information and proper tests. If brakes, steering, oil pressure, fuel leaks, overheating or severe shaking occur, stop safely and get qualified help. Never work under a car held only by a jack.</p>' +
     '<p class="muted small">Bobby Car Doctor ' + APP_VERSION + ' · ' + (dbReady() ? Object.keys(DB()).length + ' codes' : 'database loading') + '. New codes come with app updates.</p>';
   $('infoSheet').hidden = false;
@@ -461,7 +466,7 @@ const TOUR_KEY = 'bcd_tour_done_v42';
 const TOUR = [
   ['🔎', 'Type a code', 'Tap Diagnose, enter a code like P0301, and get the meaning in seconds. No internet needed.'],
   ['🔧', 'Smart Fix', 'Every code has step-by-step checks. Tick each step as you finish it.'],
-  isNative ? ['🔌', 'Scan the car', 'Plug in your Bluetooth adapter, tap Scan car, and watch the battery voltage at the top right.'] : ['📤', 'Share it', 'Send the report to a customer by WhatsApp, SMS, Bluetooth or any app on your phone.']
+  appMode ? ['🔌', 'Scan the car', 'Plug in your Bluetooth adapter, tap Scan car, and watch the battery voltage at the top right.'] : ['📤', 'Share it', 'Send the report to a customer by WhatsApp, SMS, Bluetooth or any app on your phone.']
 ];
 let tourI = 0;
 function drawTour() {
@@ -493,6 +498,7 @@ document.addEventListener('click', e => {
       codeInput.value = item.codes.join(', ');
       if (item.make && VEHICLES[item.make]) { make.value = item.make; make.dispatchEvent(new Event('change')); setSel(model, item.model); }
       $('year').value = item.year || ''; $('engine').value = item.engine || ''; $('symptoms').value = item.symptoms || '';
+      window.acdDemoScan = !!item.demo;
       diagnose();
     }
   }
@@ -547,7 +553,7 @@ function refreshLiveUi() {
   setGauge('temp', tp && tp.n, tp && tp.n.toFixed(0), tp && tp.unit, has(0x05) ? (LIVE[0x05] > 115 ? 'red' : LIVE[0x05] > 105 ? 'amber' : LIVE[0x05] < 60 ? 'blue' : 'green') : '');
   setGauge('volt', VOLT, VOLT !== null ? VOLT.toFixed(1) : '', 'V', VOLT !== null ? voltCls(VOLT) : '');
   const strip = $('liveStrip'); if (!strip) return;
-  strip.hidden = !(isNative && S.strip && (has(0x0D) || has(0x0C) || has(0x05)));
+  strip.hidden = !(appMode && S.strip && (has(0x0D) || has(0x0C) || has(0x05)));
   $('lcSpeed').textContent = sp ? sp.n.toFixed(0) : '—'; $('luSpeed').textContent = sp ? sp.unit : (S.speedU === 'mph' ? 'mph' : 'km/h');
   $('lcRpm').textContent = rp !== null ? rp.toFixed(0) : '—';
   $('lcTemp').textContent = tp ? tp.n.toFixed(0) : '—'; $('luTemp').textContent = S.tempU === 'f' ? '°F' : '°C';
@@ -556,7 +562,9 @@ function refreshLiveUi() {
 }
 window.acdOnLive = (pid, v) => { if (pid === null) { Object.keys(LIVE).forEach(k => delete LIVE[k]); VOLT = null; } else LIVE[pid] = v; refreshLiveUi(); };
 window.acdOnVolt = v => { VOLT = v; refreshLiveUi(); };
-if (isNative) buildDash();
+window.acdSetDemo = on => { const bar = $('demoBar'); if (bar) bar.hidden = !on; const off = $('demoOffBtn'); if (off) off.style.display = isNative ? '' : 'none'; };
+if ($('demoOffBtn')) $('demoOffBtn').addEventListener('click', () => { if (window.acdDemoOff) window.acdDemoOff(); });
+if (appMode) buildDash();
 
 applySettings();
 history.replaceState({ d: 0 }, '', location.hash && location.hash !== '#' ? location.hash : '#/home');

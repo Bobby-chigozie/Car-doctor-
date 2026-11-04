@@ -8,7 +8,8 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
    In a normal web browser it only shows a short note. */
 (function () {
   const isNative = !!(window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform());
-  if (!isNative) return;            // browser / editor: nothing to show, the tiles are hidden by app.js
+  let demoParam = false; try { demoParam = new URLSearchParams(location.search).get('demo') === '1'; } catch (e) { /* ignore */ }
+  if (!isNative && !demoParam) return;   // browser / editor: nothing to show (open with ?demo=1 to preview the demo)
   const scanMount = document.getElementById('scanMount'), liveMount = document.getElementById('liveMount');
   if (!scanMount || !liveMount) return;
   const card = document.createElement('div');
@@ -17,9 +18,11 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
 
   card.innerHTML =
     '<div class="row-between"><span class="conn-pill off" id="connPill">Not connected</span></div>' +
+    '<p class="muted small" style="margin:0 0 10px">Works with standard <b>ELM327</b> Bluetooth adapters. Launch, GOLO and DiagZone adapters are not supported.</p>' +
     '<div class="field"><label for="adapterSel">Bluetooth adapter</label><select id="adapterSel"><option value="">Looking for devices…</option></select></div>' +
     '<div class="actions"><button class="primary" id="scanBtn" type="button">Scan car</button><button class="secondary" id="connectBtn" type="button">Connect</button></div>' +
     '<div class="actions" style="margin-top:9px"><button class="secondary" id="findBtn" type="button">Find adapter</button><button class="secondary" id="clearCodesBtn" type="button">Clear codes</button></div>' +
+    '<div class="actions" style="margin-top:9px"><button class="secondary" id="demoBtn" type="button">🎬 Demo mode: off</button></div>' +
     '<p id="scanStatus" class="hint" role="status">Plug in the adapter, turn the ignition ON, then tap Connect.</p>' +
     '<details class="compact-details"><summary>More tools</summary><div class="actions"><button class="secondary" id="testBtn" type="button">Test adapter</button><button class="secondary" id="refreshBtn" type="button">Refresh list</button></div><pre id="scanLog" class="small logbox" style="display:none"></pre></details>';
 
@@ -44,6 +47,65 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   const sel = $('adapterSel'), btn = $('scanBtn'), statusEl = $('scanStatus'), logEl = $('scanLog');
   const pill = $('voltPill');
   if (pill) pill.hidden = false;
+  // ====================================================================
+  //  DEMO MODE: a simulated ELM327 adapter and car. Clearly labelled everywhere. Never real data.
+  // ====================================================================
+  const demoPlugin = (function () {
+    let t0 = 0, conn = false, cleared = false;
+    const H = (n, w) => ('0000' + Math.max(0, Math.round(n)).toString(16).toUpperCase()).slice(-w);
+    function car() {
+      const t = (Date.now() - t0) / 1000; let rpm, volt, speed = 0;
+      if (t < 6) { rpm = 0; volt = 12.6 - t * 0.01; }                            // ignition ON, engine off
+      else if (t < 9) { rpm = 240 + (t - 6) * 90; volt = 10.9 + (t - 6) * 0.15; } // cranking: voltage dips
+      else {
+        const run = t - 9, cyc = run % 80;
+        speed = cyc < 20 ? 0 : cyc < 35 ? (cyc - 20) * 4 : cyc < 50 ? 60 : cyc < 65 ? 60 - (cyc - 50) * 4 : 0;
+        rpm = 780 + speed * 32 + Math.sin(run * 3) * 25 + (run < 3 ? 500 - run * 160 : 0);
+        volt = 14.1 + Math.sin(run) * 0.05 - (speed === 0 ? 0.1 : 0);          // alternator charging
+      }
+      const cool = t < 9 ? 48 : Math.min(88, 48 + (t - 9) * 0.5);
+      return { rpm: Math.max(0, rpm), volt: volt, speed: speed, cool: cool, load: rpm ? 18 + speed * 0.5 : 0, thr: rpm ? 14 + speed * 0.3 : 0 };
+    }
+    function reply(cmd) {
+      const c = String(cmd).toUpperCase().replace(/\s+/g, ''), v = car();
+      if (c === 'ATZ') return '\r\rELM327 v1.5\r\r>';
+      if (c === 'ATI') return 'ELM327 v1.5\r\r>';
+      if (/^AT(E0|L0|S0|H0|SP0)$/.test(c)) return 'OK\r\r>';
+      if (c === 'ATDPN') return 'A6\r\r>';
+      if (c === 'ATRV') return v.volt.toFixed(1) + 'V\r\r>';
+      if (c === '0100') return 'SEARCHING...\r4100BE3FA813\r\r>';
+      if (c === '0101') return '41018307E500\r\r>';
+      if (c === '0104') return '4104' + H(v.load * 2.55, 2) + '\r\r>';
+      if (c === '0105') return '4105' + H(v.cool + 40, 2) + '\r\r>';
+      if (c === '0106' || c === '0107') return '410' + c[3] + '80\r\r>';
+      if (c === '010C') return '410C' + H(v.rpm * 4, 4) + '\r\r>';
+      if (c === '010D') return '410D' + H(v.speed, 2) + '\r\r>';
+      if (c === '010F') return '410F' + H(30 + 40, 2) + '\r\r>';
+      if (c === '0111') return '4111' + H(v.thr * 2.55, 2) + '\r\r>';
+      if (c === '0142') return '4142' + H(v.volt * 1000, 4) + '\r\r>';
+      if (c === '0902') return '014\r0: 49 02 01 31 48 47\r1: 43 4D 38 32 36 33 33\r2: 41 30 30 34 33 35 32\r\r>';
+      if (c === '03') return cleared ? '4300\r\r>' : '00A\r0: 43 03 03 01 01 71\r1: 04 20 00 00 00 00 00\r\r>';
+      if (c === '07') return '4700\r\r>';
+      if (c === '04') { cleared = true; return '44\r\r>'; }
+      if (c === '020200') return cleared ? 'NO DATA\r\r>' : '4202000301\r\r>';
+      if (c === '020C00') return '420C000BB8\r\r>';
+      if (c === '020500') return '4205005A\r\r>';
+      if (c === '020D00') return '420D0000\r\r>';
+      if (c === '020400') return '4204003C\r\r>';
+      if (/^01[0-9A-F]{2}$/.test(c) || /^02[0-9A-F]{4}$/.test(c)) return 'NO DATA\r\r>';
+      return '?\r\r>';
+    }
+    const dev = { name: 'Demo ELM327 (simulated)', address: 'DE:MO:00:00:00:01', type: 'ble' };
+    return {
+      listPaired: async () => ({ devices: [dev] }),
+      scanLe: async () => ({ devices: [dev] }),
+      connect: async () => { await sleep(500); t0 = Date.now(); cleared = false; conn = true; return { connected: true, method: 'demo' }; },
+      send: async o => { if (!conn) throw new Error('Not connected'); await sleep(70 + Math.random() * 80); return { response: reply(o.command) }; },
+      deviceInfo: async () => ({ name: dev.name, address: dev.address, type: 'ble', bonded: true, uuids: [] }),
+      disconnect: async () => { conn = false; }
+    };
+  })();
+
   // Plugin lookup that works with or without the Capacitor helper library.
   function getPlugin(name) {
     const C = window.Capacitor;
@@ -51,9 +113,12 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
     if (C && typeof C.registerPlugin === 'function') return C.registerPlugin(name);
     throw new Error(name + ' is not available in this app build');
   }
-  let Obd = null;
-  try { Obd = getPlugin('ObdBluetooth'); } catch (e) { /* shown below */ }
+  let realObd = null;
+  if (isNative) { try { realObd = getPlugin('ObdBluetooth'); } catch (e) { /* shown below */ } }
+  let demoOn = !isNative;                       // in a browser the demo is the only thing there is
+  let Obd = demoOn ? demoPlugin : realObd;
   if (!Obd) { statusEl.textContent = 'The Bluetooth part did not load in this build. Please send a screenshot of this message to the developer.'; statusEl.style.color = '#ffb4a8'; return; }
+  window.acdIsDemo = demoOn;
   let OBD = window.OBD, busy = false, connectedAddr = null, connectedTr = null, isCan = null;
   let pumpTimer = null, pumpRunning = false, pumpOn = false, liveOn = false, fast = false, voltFails = 0, voltSource = 'adapter';
   let reconnectTries = 0, reconnectTimer = null, wantLink = false, liveIdx = 0, liveMisses = 0, liveBlank = 0;
@@ -61,7 +126,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   const lastVals = {};
   const unsupported = {};
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const BTNS = ['scanBtn', 'connectBtn', 'findBtn', 'clearCodesBtn', 'testBtn', 'refreshBtn', 'liveBtn', 'infoBtn'];
+  const BTNS = ['demoBtn', 'scanBtn', 'connectBtn', 'findBtn', 'clearCodesBtn', 'testBtn', 'refreshBtn', 'liveBtn', 'infoBtn'];
   const setButtons = d => BTNS.forEach(id => { const e = $(id); if (e) e.disabled = d; });
   const say = (t, cls) => { statusEl.textContent = t; statusEl.style.color = cls === 'bad' ? '#ffb4a8' : cls === 'ok' ? '#92f3d7' : ''; };
   const log = t => { logEl.style.display = 'block'; logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; };
@@ -137,11 +202,11 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   }
 
   // ---------- connection ----------
-  const trName = t => t === 'ble' ? 'Bluetooth LE' : 'Bluetooth Classic';
+  const trName = t => t === 'demo' ? 'Demo' : t === 'ble' ? 'Bluetooth LE' : 'Bluetooth Classic';
 
   function showConn() {
     const cp = $('connPill'), cb = $('connectBtn');
-    if (cp) { cp.textContent = connectedAddr ? 'Connected' + (connectedTr ? ' · ' + (connectedTr === 'ble' ? 'BLE' : 'Classic') : '') : 'Not connected'; cp.className = 'conn-pill ' + (connectedAddr ? 'on' : 'off'); }
+    if (cp) { cp.textContent = connectedAddr ? 'Connected' + (connectedTr ? ' · ' + (connectedTr === 'demo' ? 'DEMO' : connectedTr === 'ble' ? 'BLE' : 'Classic') : '') : 'Not connected'; cp.className = 'conn-pill ' + (connectedAddr ? 'on' : 'off'); }
     if (cb) cb.textContent = connectedAddr ? 'Disconnect' : 'Connect';
     if (!connectedAddr) setVoltUi(null);
   }
@@ -163,6 +228,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
 
   // Which Bluetooth types to try, in order. Remembers the one that worked last time.
   function transportOrder(addr) {
+    if (demoOn) return ['demo'];
     const type = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].dataset.type : 'unknown';
     const order = type === 'classic' ? ['classic', 'ble'] : ['ble', 'classic'];
     const last = savedTr(addr);
@@ -215,7 +281,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       const info = await describeAdapter(addr);
       const kindText = info ? ' Android says this adapter is "' + info.type + '" type.' : '';
       throw new Error((last
-        ? 'Connected, but the adapter did not answer like a standard ELM327. It may use its own private protocol (some branded scanners only work with their own app), so this app cannot read it.'
+        ? 'Connected, but the adapter did not answer the standard ELM327 commands. Adapters from Launch, GOLO, DiagZone and similar brands use a private language and are NOT supported. Please use a standard ELM327 Bluetooth adapter.'
         : 'Could not connect to the adapter. Check it is plugged in with the ignition ON, and that no other app (such as DiagZone) is connected to it.')
         + kindText + ' Details: ' + problems.join(' | ') + ' The full log is below.');
     }
@@ -295,6 +361,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       }
       $('codes').value = all.join(', ');
       say('Scan complete. Stored codes: ' + (stored.join(', ') || 'none') + '. Pending codes: ' + (pending.join(', ') || 'none') + '. Opening the report…', 'ok');
+      window.acdDemoScan = demoOn;
       $('runBtn').click();
     } catch (e) {
       say(e.message || String(e), 'bad');
@@ -557,7 +624,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       try {
         const vin = OBD.vinFromResponse(await send('0902', 9000, 1000));
         el('vinValue', vin || 'Not supported by this car, or no valid answer');
-        if (vin && window.acdVehicleFromVin) window.acdVehicleFromVin(vin);
+        if (vin && window.acdVehicleFromVin && !demoOn) window.acdVehicleFromVin(vin);
       } catch (e) { el('vinValue', 'Unavailable'); if (!connectedAddr) throw e; }
       // Readiness
       try {
@@ -586,19 +653,35 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   // ---------- wire up ----------
   btn.addEventListener('click', scan);
   $('connectBtn').addEventListener('click', connectToggle);
+  async function setDemo(on) {
+    if (!isNative || busy || on === demoOn) return;
+    if (connectedAddr) await disconnectNow();
+    demoOn = on; Obd = on ? demoPlugin : realObd; window.acdIsDemo = on;
+    if (!Obd) { demoOn = false; Obd = demoPlugin; say('The Bluetooth part is not available.', 'bad'); return; }
+    syncDemoUi();
+    sel.innerHTML = '';
+    await refresh();
+    if (on) say('DEMO MODE: a simulated car. Tap Connect, then Scan car. Nothing here is real data.', 'ok');
+  }
+  function syncDemoUi() {
+    const b = $('demoBtn'); if (b) { b.textContent = '🎬 Demo mode: ' + (demoOn ? 'ON' : 'off'); b.className = demoOn ? 'primary' : 'secondary'; if (!isNative) b.style.display = 'none'; }
+    if (window.acdSetDemo) window.acdSetDemo(demoOn);
+  }
+  window.acdDemoOff = () => setDemo(false);
+  $('demoBtn').addEventListener('click', () => setDemo(!demoOn));
   $('clearCodesBtn').addEventListener('click', clearCodes);
   $('testBtn').addEventListener('click', testAdapter);
   $('refreshBtn').addEventListener('click', refresh);
   $('findBtn').addEventListener('click', findAdapter);
   $('liveBtn').addEventListener('click', toggleLive);
   $('infoBtn').addEventListener('click', readVehicleInfo);
-  setVoltUi(null); renderTests(); showConn();
+  setVoltUi(null); renderTests(); showConn(); syncDemoUi();
 
   (async () => {
     if (!OBD) { try { await load('obd.js'); OBD = window.OBD; } catch (e) { /* loaded on demand later */ } }
     const picked = await refresh();
     // Connect by itself when the adapter used last time is in the list.
-    if (picked && saved() && sel.value === saved()) {
+    if (!demoOn && picked && saved() && sel.value === saved()) {
       wantLink = true;
       if (await begin(false)) {
         try { say('Connecting to your adapter…', ''); await prepare(true); say('Connected. Battery voltage is shown at the top right. Tap "Scan car" to read codes.', 'ok'); }
