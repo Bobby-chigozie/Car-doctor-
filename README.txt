@@ -4,7 +4,7 @@ Current app features
 - Offline lookup using the included DTC database (662 entries).
 - Vehicle make/model/year/engine selection for report context. The expanded selector includes popular makes and models from several regions. A listed vehicle is not a promise that every ECU or code is supported.
 - Smart Fix step checklist and detailed code information.
-- Tap-first offline symptom checklist: mechanics can select observed symptoms instead of typing. Optional text note remains available. Selected observations appear in the report and the relevant Smart Fix screen.
+- Tap-first offline symptom checklist: mechanics can select observed symptoms instead of typing. Optional text note remains available. Selected observations appear in the report and are used by Smart Fix to prioritise relevant checks. Checklist text, spacing and checkbox dimensions scale with the existing Small/Normal/Large/Extra Large setting.
 - Scan, live-data and battery screens are available in the installed app/demo mode as previously implemented.
 - Report history remains on the phone and expires after 7 days (20 reports maximum).
 

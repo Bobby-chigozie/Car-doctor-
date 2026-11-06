@@ -300,11 +300,33 @@ function codeHead(c, d) {
   const urg = urgencyFor(c, d);
   return `<div class="rcard"><div class="fault-head"><span class="code">${esc(c)}</span><span class="severity ${urg.cls}">${esc(urg.label)}</span></div><div class="title">${esc(d.title)}</div></div><div class="note-box">${esc(urg.text)}</div>`;
 }
+function observationGuidance(ids) {
+  const rules = {
+    flashing_light: ['Flashing check-engine light', 'Prioritise a prompt engine/misfire assessment. Avoid continued driving if the engine is shaking or running badly.'],
+    overheat: ['Temperature too high', 'Prioritise a cooling-system assessment. Do not open a hot cooling system; allow it to cool and have coolant level/leaks checked safely.'],
+    coolant_loss: ['Coolant level dropping', 'Look for evidence of an external leak and arrange a cooling-system pressure test; do not assume the thermostat or water pump is faulty.'],
+    no_start: ['Vehicle will not start', 'Start with battery condition, terminals and the relevant power/ground checks before suspecting a control module.'],
+    slow_crank: ['Slow engine cranking', 'Prioritise battery condition, terminal connections and charging-system test results.'],
+    battery_light: ['Battery / charging warning', 'Prioritise charging-system and belt-condition checks; avoid replacing the alternator based on the warning alone.'],
+    fuel_smell: ['Fuel smell', 'Treat this as a safety concern. Avoid ignition sources and have the fuel system inspected before operating the vehicle.'],
+    hard_shift: ['Hard or delayed gear changes', 'Record transmission-related codes and fluid condition using the vehicle maker’s procedure; avoid assuming the transmission itself has failed.'],
+    slipping: ['Gear slipping', 'Prioritise a professional transmission assessment and avoid heavy load until checked.'],
+    no_communication: ['Scanner cannot communicate with a module', 'Prioritise checking the correct vehicle/module selection and verified power, ground and network condition; do not condemn the module yet.'],
+    abs_light: ['ABS / brake warning', 'Prioritise a qualified brake/ABS inspection. Do not rely on the vehicle until braking safety is confirmed.'],
+    steering_light: ['Steering warning', 'Prioritise a qualified steering-system inspection, especially if steering effort or response has changed.'],
+    weak_power: ['Weak acceleration / loss of power', 'Compare live data and related codes under the maker’s test procedure before replacing sensors or fuel-system parts.'],
+    rough_idle: ['Rough or uneven idle', 'Compare the idle complaint with misfire counters, fuel trims and intake/ignition checks relevant to this code.'],
+    high_fuel: ['High fuel consumption', 'Prioritise checking fuel trims, coolant-temperature data and airflow readings against vehicle specifications.'],
+    electrical: ['Electrical problems', 'Prioritise battery/charging condition, fuses, grounds and connector condition before suspecting an electronic module.']
+  };
+  return ids.filter(id => rules[id]).map(id => rules[id]);
+}
 function renderFix(c) {
   c = (c || '').toUpperCase(); const d = getCode(c), steps = smartSteps(c, d), done = doneSteps[c] || (doneSteps[c] = {});
   const k = steps.filter((_, i) => done[i]).length;
   const observed = lastReport && lastReport.codes.indexOf(c) >= 0 ? (lastReport.symptoms || []) : [];
-  const observedBox = observed.length ? `<div class="section observed-box"><h3>Mechanic's observations</h3><p>${observed.map(x => esc(SYMPTOM_LABELS[x] || x)).join(' · ')}</p><p class="muted small">Use these observations to choose which checks to perform first. They do not prove the cause.</p></div>` : '';
+  const advice = observationGuidance(observed);
+  const observedBox = observed.length ? `<div class="section observed-box"><h3>Mechanic's observations</h3><p>${observed.map(x => esc(SYMPTOM_LABELS[x] || x)).join(' · ')}</p><p class="muted small">Smart Fix uses these selected observations to prioritise the extra checks below. They are clues, not proof of a failed part.</p>${advice.length ? '<h4>Checks prioritised from your observations</h4><ul>' + advice.map(x => '<li><strong>' + esc(x[0]) + ':</strong> ' + esc(x[1]) + '</li>').join('') + '</ul>' : ''}</div>` : '';
   $('fixBody').innerHTML = codeHead(c, d) + observedBox +
     `<p class="prog" id="fixProg">${k} of ${steps.length} steps done${k === steps.length ? ' — now rescan to confirm the repair' : ''}</p><div class="progbar"><i style="width:${Math.round(100 * k / steps.length)}%"></i></div>` +
     steps.map((st, i) => `<div class="smart-step${done[i] ? ' done' : ''}" data-i="${i}"><h4>${i + 1}. ${esc(st[0])}</h4><p>${esc(st[1])}</p><div class="smart-controls"><button type="button" class="secondary smart-done">${done[i] ? '✓ Done (tap to undo)' : '✓ Check completed'}</button><button type="button" class="secondary" data-go="details/${esc(c)}">? Need more help</button></div></div>`).join('') +
