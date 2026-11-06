@@ -23,7 +23,7 @@ try { window.acdFlags && (window.acdFlags.app = 1); } catch (e) { /* ignore */ }
 })();
 
 function startApp() {
-const VEHICLES = {"Acura":["ILX","MDX","RDX","TL","TLX","TSX","Integra"],"Audi":["A3","A4","A6","Q3","Q5","Q7"],"BMW":["1 Series","3 Series","5 Series","X1","X3","X5"],"Chevrolet":["Aveo","Camaro","Cruze","Malibu","Spark"],"Ford":["Fiesta","Focus","Fusion","Escape","Explorer","Ranger"],"Honda":["Accord","Civic","CR-V","Fit","HR-V","Pilot"],"Hyundai":["Accent","Elantra","Santa Fe","Sonata","Tucson"],"Kia":["Cerato/Forte","Rio","Sportage","Sorento"],"Lexus":["ES","GS","IS","RX","NX"],"Mazda":["Mazda 2","Mazda 3","Mazda 6","CX-5"],"Mercedes-Benz":["C-Class","E-Class","GLA","GLC","GLE"],"Mitsubishi":["Lancer","Outlander","Pajero"],"Nissan":["Altima","Maxima","Pathfinder","Sentra","Sunny","X-Trail"],"Subaru":["Forester","Impreza","Legacy","Outback"],"Suzuki":["Swift","Vitara","Jimny"],"Toyota":["4Runner","Avalon","Camry","Corolla","Highlander","Hilux","Land Cruiser","Prius","RAV4","Sienna","Yaris"],"Volkswagen":["Golf","Jetta","Passat","Polo","Tiguan"],"Other / not listed":["Other"]};
+const VEHICLES = {"Acura":["CL","ILX","Integra","MDX","NSX","RDX","RL","RLX","RSX","TL","TLX","TSX","ZDX"],"Alfa Romeo":["Giulia","Stelvio","Tonale","4C"],"Audi":["A1","A3","A4","A5","A6","A7","A8","Q2","Q3","Q5","Q7","Q8","TT"],"BAIC":["BJ40","X35","X55"],"Bentley":["Bentayga","Continental GT","Flying Spur"],"BMW":["1 Series","2 Series","3 Series","4 Series","5 Series","6 Series","7 Series","8 Series","X1","X2","X3","X4","X5","X6","X7","Z4"],"Buick":["Encore","Envision","Enclave","Regal"],"BYD":["Atto 3","Dolphin","Han","Seal","Tang"],"Cadillac":["ATS","CT4","CT5","CTS","Escalade","XT4","XT5","XT6"],"Changan":["Alsvin","CS35","CS55","CS75","UNI-K"],"Chery":["Arrizo 5","Tiggo 4","Tiggo 7","Tiggo 8"],"Chevrolet":["Aveo","Blazer","Camaro","Captiva","Colorado","Cruze","Equinox","Malibu","Silverado","Spark","Suburban","Tahoe","Trailblazer"],"Chrysler":["200","300","Pacifica","Voyager"],"Citroën":["Berlingo","C3","C4","C5 Aircross"],"Daewoo":["Espero","Lanos","Leganza","Matiz","Nubira"],"Daihatsu":["Boon","Charade","Mira","Rocky","Terios"],"Dodge":["Challenger","Charger","Durango","Journey","Ram"],"Dongfeng":["AX7","Rich","T5"],"Fiat":["500","Doblo","Panda","Tipo"],"Ford":["Bronco","EcoSport","Edge","Escape","Everest","Explorer","F-150","Fiesta","Focus","Fusion","Kuga","Mondeo","Mustang","Ranger","Transit"],"GAC Motor":["GS3","GS4","GS5","GS8","Empow"],"Geely":["Coolray","Emgrand","Monjaro","Okavango"],"Genesis":["G70","G80","G90","GV70","GV80"],"GMC":["Acadia","Canyon","Savana","Sierra","Terrain","Yukon"],"Great Wall":["Cannon","Hover H3","Hover H5","Wingle"],"Haval":["H2","H6","H9","Jolion","Dargo"],"Honda":["Accord","City","Civic","CR-V","CR-Z","Element","Fit","HR-V","Insight","Jazz","Odyssey","Pilot","Ridgeline"],"Hyundai":["Accent","Azera","Creta","Elantra","Getz","Grand i10","Kona","Santa Fe","Sonata","Tucson","Venue"],"Infiniti":["EX","FX","G","Q30","Q50","QX50","QX60","QX80"],"Isuzu":["D-Max","MU-X","N-Series","Trooper"],"Jaguar":["E-Pace","F-Pace","F-Type","I-Pace","XE","XF","XJ"],"Jeep":["Cherokee","Compass","Gladiator","Grand Cherokee","Renegade","Wrangler"],"Kia":["Carens","Cerato/Forte","EV6","K5/Optima","Morning/Picanto","Rio","Sorento","Soul","Sportage","Seltos"],"Land Rover":["Defender","Discovery","Discovery Sport","Freelander","Range Rover","Range Rover Evoque","Range Rover Sport","Velar"],"Lexus":["CT","ES","GS","GX","IS","LC","LS","LX","NX","RC","RX","UX"],"Lincoln":["Aviator","Continental","Corsair","MKC","MKX","Navigator"],"Mahindra":["Scorpio","Thar","XUV300","XUV500","XUV700"],"Maserati":["Ghibli","Grecale","GranTurismo","Levante","Quattroporte"],"Mazda":["Mazda 2","Mazda 3","Mazda 5","Mazda 6","CX-3","CX-30","CX-5","CX-9","BT-50"],"Mercedes-Benz":["A-Class","B-Class","C-Class","CLA","CLS","E-Class","G-Class","GLA","GLB","GLC","GLE","GLS","S-Class","SL","Sprinter","Vito"],"MG":["3","5","6","HS","ZS","RX5"],"Mini":["Clubman","Cooper","Countryman","Paceman"],"Mitsubishi":["ASX","L200","Lancer","Mirage","Montero/Pajero","Outlander","Xpander"],"Nissan":["370Z","Almera","Altima","Frontier/Navara","Juke","March/Micra","Maxima","Murano","Pathfinder","Patrol","Qashqai","Rogue","Sentra","Sunny","Tiida","X-Trail"],"Opel":["Astra","Corsa","Insignia","Mokka","Zafira"],"Peugeot":["2008","206","207","208","3008","301","307","308","407","408","5008","508","Partner"],"Porsche":["718 Boxster/Cayman","911","Cayenne","Macan","Panamera","Taycan"],"Proton":["Gen-2","Iriz","Persona","Saga","X50","X70"],"Renault":["Captur","Duster","Kangoo","Koleos","Logan","Megane","Sandero"],"Rolls-Royce":["Cullinan","Ghost","Phantom","Wraith"],"Saab":["9-3","9-5"],"Seat":["Arona","Ateca","Ibiza","Leon"],"Škoda":["Fabia","Karoq","Kodiaq","Octavia","Superb"],"Smart":["ForTwo","ForFour"],"SsangYong / KGM":["Actyon","Korando","Musso","Rexton","Tivoli"],"Subaru":["BRZ","Crosstrek/XV","Forester","Impreza","Legacy","Outback","WRX"],"Suzuki":["Alto","Baleno","Celerio","Dzire","Ertiga","Grand Vitara","Jimny","Swift","Vitara"],"Tata":["Harrier","Nexon","Safari","Tiago"],"Tesla":["Model 3","Model S","Model X","Model Y","Cybertruck"],"Toyota":["4Runner","Avalon","Avensis","C-HR","Camry","Corolla","Corolla Cross","Fortuner","GR86","HiAce","Highlander","Hilux","Land Cruiser","Prado","Prius","RAV4","Rush","Sequoia","Sienna","Venza","Yaris"],"Vauxhall":["Astra","Corsa","Grandland","Insignia","Mokka"],"Volkswagen":["Amarok","Arteon","Atlas/Teramont","Golf","Jetta","Passat","Polo","T-Cross","Tiguan","Touareg","Transporter"],"Volvo":["C30","S40","S60","S80","S90","V40","V60","V90","XC40","XC60","XC90"],"Wuling":["Air EV","Almaz","Confero"],"Other / not listed":["Other"]};
 
 const $ = id => document.getElementById(id);
 const make = $('make'), model = $('model'), codeInput = $('codes'), statusBox = $('status'), report = $('reportContent');
@@ -43,6 +43,49 @@ make.addEventListener('change', () => {
 });
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+/* Offline, tap-first workshop observations. These describe what was noticed, not confirmed causes. */
+const SYMPTOM_GROUPS = {
+  misfire: [['shaking','Engine shakes / misfires'],['rough_idle','Rough or uneven idle'],['weak_power','Weak acceleration / loss of power'],['hard_start','Hard starting'],['stalling','Engine stalls'],['flashing_light','Flashing check-engine light']],
+  mixture: [['rough_idle','Rough or uneven idle'],['weak_power','Weak acceleration'],['high_fuel','High fuel consumption'],['black_smoke','Black exhaust smoke'],['hard_start','Hard starting'],['stalling','Engine stalls']],
+  exhaust: [['warning_light','Check-engine light'],['weak_power','Weak acceleration'],['high_fuel','High fuel consumption'],['exhaust_smell','Unusual exhaust smell'],['rattle','Rattling noise']],
+  evap: [['fuel_smell','Fuel smell around vehicle'],['hard_start','Hard starting after refuelling'],['warning_light','Check-engine light'],['rough_idle','Rough idle']],
+  oxygen: [['high_fuel','High fuel consumption'],['rough_idle','Rough or uneven idle'],['weak_power','Weak acceleration'],['warning_light','Check-engine light']],
+  transmission: [['hard_shift','Hard or delayed gear changes'],['slipping','Gear slipping / RPM rises without matching speed'],['no_drive','Vehicle does not move normally'],['warning_light','Transmission warning light']],
+  network: [['warning_light','Several warning lights at once'],['electrical','Intermittent electrical problems'],['no_start','Vehicle will not start'],['no_communication','Scanner cannot communicate with a module']],
+  chassis: [['abs_light','ABS / brake warning light'],['steering_light','Steering warning light'],['handling','Change in handling or braking']],
+  body: [['airbag_light','Airbag warning light'],['electrical','Electrical or body-system problem'],['lighting','Lighting problem']],
+  cooling: [['overheat','Temperature too high / overheating'],['coolant_loss','Coolant level keeps dropping'],['heater','Cabin heater not working normally']],
+  charging: [['battery_light','Battery / charging warning light'],['slow_crank','Slow engine cranking'],['electrical','Electrical problems']],
+  general: [['rough_idle','Rough or uneven idle'],['hard_start','Hard starting'],['no_start','Engine will not start'],['weak_power','Weak acceleration / loss of power'],['stalling','Engine stalls'],['high_fuel','High fuel consumption'],['warning_light','Warning light on'],['noise','Unusual noise or vibration']]
+};
+const SYMPTOM_LABELS = {};
+Object.keys(SYMPTOM_GROUPS).forEach(g => SYMPTOM_GROUPS[g].forEach(x => SYMPTOM_LABELS[x[0]] = x[1]));
+let selectedSymptoms = [];
+function symptomGroupFor(code) {
+  if (/^P03[0-9A-C]|^P031[0-9A-C]/.test(code)) return 'misfire';
+  if (/^P017[0-5]|lean|rich|fuel trim/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'mixture';
+  if (/^P042[0-9]|catalyst/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'exhaust';
+  if (/^P044[0-9]|^P045[0-9]|evap|purge/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'evap';
+  if (/^P013|^P014|^P015|^P016|oxygen sensor|air.?fuel/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'oxygen';
+  if (/^P07|transmission/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'transmission';
+  if (/^U/.test(code)) return 'network';
+  if (/^C/.test(code)) return 'chassis';
+  if (/^B/.test(code)) return 'body';
+  if (/^P01(1[5-9]|2[5-8])|coolant|temperature/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'cooling';
+  if (/^P056|voltage|charging/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'charging';
+  return 'general';
+}
+function renderSymptomPicker() {
+  const box = $('symptomPicker'); if (!box) return;
+  const codes = (codeInput.value.toUpperCase().match(/[PBCU][0-3][0-9A-F]{3}/g) || []);
+  const groups = []; (codes.length ? codes : ['']).forEach(c => { const g = symptomGroupFor(c); if (groups.indexOf(g) < 0) groups.push(g); });
+  const options = [], seen = {};
+  groups.forEach(g => SYMPTOM_GROUPS[g].forEach(x => { if (!seen[x[0]]) { seen[x[0]] = 1; options.push(x); } }));
+  selectedSymptoms = selectedSymptoms.filter(id => !!SYMPTOM_LABELS[id]);
+  box.innerHTML = '<p class="muted small symptom-hint">Tap anything you notice. You can select more than one. This helps Smart Fix focus its guidance; it does not confirm a cause.</p><div class="symptom-grid">' + options.map(x => '<label class="symptom-option' + (selectedSymptoms.indexOf(x[0]) >= 0 ? ' selected' : '') + '"><input type="checkbox" data-symptom="' + esc(x[0]) + '"' + (selectedSymptoms.indexOf(x[0]) >= 0 ? ' checked' : '') + '><span>' + esc(x[1]) + '</span></label>').join('') + '</div><p class="symptom-count" id="symptomCount">' + selectedSymptoms.length + ' selected</p>';
+}
+
 
 /* ---------- what the code NUMBER itself tells us (SAE J2012 structure) ---------- */
 function codeStructure(code) {
@@ -260,7 +303,9 @@ function codeHead(c, d) {
 function renderFix(c) {
   c = (c || '').toUpperCase(); const d = getCode(c), steps = smartSteps(c, d), done = doneSteps[c] || (doneSteps[c] = {});
   const k = steps.filter((_, i) => done[i]).length;
-  $('fixBody').innerHTML = codeHead(c, d) +
+  const observed = lastReport && lastReport.codes.indexOf(c) >= 0 ? (lastReport.symptoms || []) : [];
+  const observedBox = observed.length ? `<div class="section observed-box"><h3>Mechanic's observations</h3><p>${observed.map(x => esc(SYMPTOM_LABELS[x] || x)).join(' · ')}</p><p class="muted small">Use these observations to choose which checks to perform first. They do not prove the cause.</p></div>` : '';
+  $('fixBody').innerHTML = codeHead(c, d) + observedBox +
     `<p class="prog" id="fixProg">${k} of ${steps.length} steps done${k === steps.length ? ' — now rescan to confirm the repair' : ''}</p><div class="progbar"><i style="width:${Math.round(100 * k / steps.length)}%"></i></div>` +
     steps.map((st, i) => `<div class="smart-step${done[i] ? ' done' : ''}" data-i="${i}"><h4>${i + 1}. ${esc(st[0])}</h4><p>${esc(st[1])}</p><div class="smart-controls"><button type="button" class="secondary smart-done">${done[i] ? '✓ Done (tap to undo)' : '✓ Check completed'}</button><button type="button" class="secondary" data-go="details/${esc(c)}">? Need more help</button></div></div>`).join('') +
     `<p class="muted small center" style="margin-top:12px">General guidance. Exact tests and values depend on the vehicle. A code is a clue, not proof that a part has failed.</p>`;
@@ -280,7 +325,7 @@ function readHistory() {
 function saveHistory(codes, demo) {
   try {
     const old = readHistory();
-    old.unshift({ time: Date.now(), make: make.value, model: model.value, year: $('year').value.trim(), engine: $('engine').value.trim(), vehicle: vehicleLine() || 'Vehicle not specified', demo: !!demo, codes: codes.slice(0, 12), symptoms: $('symptoms').value.trim().slice(0, 300) });
+    old.unshift({ time: Date.now(), make: make.value, model: model.value, year: $('year').value.trim(), engine: $('engine').value.trim(), vehicle: vehicleLine() || 'Vehicle not specified', demo: !!demo, codes: codes.slice(0, 12), symptoms: selectedSymptoms.slice(), symptomNote: $('symptoms').value.trim().slice(0, 300) });
     localStorage.setItem(HISTORY_KEY, JSON.stringify(old.slice(0, HISTORY_LIMIT)));
   } catch (e) { /* storage is optional; never block diagnosis */ }
 }
@@ -351,7 +396,7 @@ function diagnose() {
     if (year && !/^(19|20)\d{2}$/.test(year)) warn = 'Note: "' + year + '" does not look like a 4-digit year.';
     else if (year && +year < 1996) warn = 'Note: vehicles before about 1996 may not use standard OBD-II codes.';
     for (const k in doneSteps) delete doneSteps[k];
-    lastReport = { codes, vehicle: vehicleLine() || 'Vehicle not specified', symptoms: $('symptoms').value.trim(), time: Date.now(), demo: !!window.acdDemoScan };
+    lastReport = { codes, vehicle: vehicleLine() || 'Vehicle not specified', symptoms: selectedSymptoms.slice(), symptomNote: $('symptoms').value.trim(), time: Date.now(), demo: !!window.acdDemoScan };
     window.acdDemoScan = false;
     saveHistory(codes, !!lastReport.demo);
     const known = codes.filter(c => DB()[c]).length;
@@ -365,17 +410,19 @@ function renderResultsScreen() {
   $('resultsEmpty').hidden = has; $('resultsBox').hidden = !has;
   if (!has) return;
   $('vehicleSummary').textContent = lastReport.vehicle + (lastReport.demo ? ' · DEMO' : '');
-  report.innerHTML = (lastReport.demo ? '<div class="demo-note">🎬 DEMO: simulated codes from the demo car. This is not a real scan.</div>' : '') + (lastReport.symptoms ? `<div class="section"><h3>Reported symptoms</h3><p>${esc(lastReport.symptoms)}</p></div>` : '') + lastReport.codes.map(card).join('');
+  report.innerHTML = (lastReport.demo ? '<div class="demo-note">🎬 DEMO: simulated codes from the demo car. This is not a real scan.</div>' : '') + (lastReport.symptoms && lastReport.symptoms.length ? `<div class="section"><h3>What the mechanic noticed</h3><p>${lastReport.symptoms.map(x => esc(SYMPTOM_LABELS[x] || x)).join(' · ')}</p></div>` : '') + (lastReport.symptomNote ? `<div class="section"><h3>Additional note</h3><p>${esc(lastReport.symptomNote)}</p></div>` : '') + lastReport.codes.map(card).join('');
 }
 $('runBtn').addEventListener('click', diagnose);
+codeInput.addEventListener('input', renderSymptomPicker);
+document.addEventListener('change', e => { const cb = e.target.closest('[data-symptom]'); if (!cb) return; const id = cb.getAttribute('data-symptom'); if (cb.checked && selectedSymptoms.indexOf(id) < 0) selectedSymptoms.push(id); else if (!cb.checked) selectedSymptoms = selectedSymptoms.filter(x => x !== id); cb.closest('.symptom-option').classList.toggle('selected', cb.checked); const count = $('symptomCount'); if (count) count.textContent = selectedSymptoms.length + ' selected'; });
 codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); diagnose(); } });
 $('sampleBtn').addEventListener('click', () => {
-  codeInput.value = 'P0301';
+  codeInput.value = 'P0301'; renderSymptomPicker();
   if (!make.value) { make.value = 'Toyota'; make.dispatchEvent(new Event('change')); model.value = 'Camry'; }
   diagnose();
 });
 $('clearBtn').addEventListener('click', () => {
-  codeInput.value = ''; $('symptoms').value = ''; $('year').value = ''; $('engine').value = '';
+  codeInput.value = ''; $('symptoms').value = ''; selectedSymptoms = []; renderSymptomPicker(); $('year').value = ''; $('engine').value = '';
   statusBox.textContent = 'Cleared.'; codeInput.focus();
 });
 
@@ -402,7 +449,7 @@ function reportText(short) {
     const d = getCode(c), u = urgencyFor(c, d);
     return '• ' + c + ' — ' + d.title + '\n   ' + u.label + '. ' + u.text;
   });
-  return demoTag + 'BOBBY CAR DOCTOR — report\nVehicle: ' + lastReport.vehicle + '\nDate: ' + when + (lastReport.symptoms ? '\nSymptoms: ' + lastReport.symptoms : '') + '\n\nCodes:\n' + lines.join('\n\n') + '\n\nThese are possible causes, not a confirmed diagnosis. A mechanic should confirm before parts are replaced.';
+  return demoTag + 'BOBBY CAR DOCTOR — report\nVehicle: ' + lastReport.vehicle + '\nDate: ' + when + (lastReport.symptoms && lastReport.symptoms.length ? '\nObserved: ' + lastReport.symptoms.map(x => SYMPTOM_LABELS[x] || x).join(', ') : '') + (lastReport.symptomNote ? '\nNote: ' + lastReport.symptomNote : '') + '\n\nCodes:\n' + lines.join('\n\n') + '\n\nThese are possible causes, not a confirmed diagnosis. A mechanic should confirm before parts are replaced.';
 }
 function renderShare() {
   if (!lastReport) { goTab('results'); return; }
@@ -485,7 +532,7 @@ document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]'); if (g) { go(g.getAttribute('data-go')); return; }
   const n = e.target.closest('[data-nav]'); if (n) { goTab(n.getAttribute('data-nav')); return; }
   const q = e.target.closest('[data-quick]');
-  if (q) { const c = q.getAttribute('data-quick'), cur = codeInput.value.trim(); if (!cur.toUpperCase().includes(c)) codeInput.value = cur ? cur.replace(/[,\s]+$/, '') + ', ' + c : c; return; }
+  if (q) { const c = q.getAttribute('data-quick'), cur = codeInput.value.trim(); if (!cur.toUpperCase().includes(c)) codeInput.value = cur ? cur.replace(/[,\s]+$/, '') + ', ' + c : c; renderSymptomPicker(); return; }
   const done = e.target.closest('.smart-done');
   if (done) {
     const step = done.closest('.smart-step'), c = parseHash().arg.toUpperCase(), i = Number(step.getAttribute('data-i'));
@@ -497,7 +544,7 @@ document.addEventListener('click', e => {
     if (item) {
       codeInput.value = item.codes.join(', ');
       if (item.make && VEHICLES[item.make]) { make.value = item.make; make.dispatchEvent(new Event('change')); setSel(model, item.model); }
-      $('year').value = item.year || ''; $('engine').value = item.engine || ''; $('symptoms').value = item.symptoms || '';
+      $('year').value = item.year || ''; $('engine').value = item.engine || ''; selectedSymptoms = Array.isArray(item.symptoms) ? item.symptoms.slice() : []; $('symptoms').value = item.symptomNote || (typeof item.symptoms === 'string' ? item.symptoms : ''); renderSymptomPicker();
       window.acdDemoScan = !!item.demo;
       diagnose();
     }
@@ -507,10 +554,11 @@ if ($('clearHistoryBtn')) $('clearHistoryBtn').addEventListener('click', () => {
 
 window.acdOnDb = () => { try { window.acdFlags && (window.acdFlags.db = 1); } catch (e) { /* ignore */ } showCount(); renderQuick(); if (pendingDiagnose) diagnose(); };
 showCount();
+renderSymptomPicker();
 /* Optional: open the page with ?codes=P0133,P0498 to prefill and run a diagnosis. */
 try {
   const q = new URLSearchParams(location.search).get('codes');
-  if (q) { codeInput.value = q.split(',').join(', '); setTimeout(diagnose, 0); }
+  if (q) { codeInput.value = q.split(',').join(', '); renderSymptomPicker(); setTimeout(diagnose, 0); }
 } catch (e) { /* ignore */ }
 
 /* ======================= LIVE READINGS (top strip + gauges), units ======================= */
