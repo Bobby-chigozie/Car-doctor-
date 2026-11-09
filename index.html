@@ -14,7 +14,7 @@
   setTimeout(function(){try{
     var f=window.acdFlags,ua=navigator.userAgent||'',m=ua.match(/Chrome\/(\d+)/);
     if(new URLSearchParams(location.search).get('debug')!=='1' && localStorage.getItem('bcd_debug')!=='1') return; var line=document.createElement('p');line.id='acdDebugBar';line.style.cssText='position:fixed;left:0;right:0;bottom:68px;z-index:9999;margin:0;padding:4px 8px;font-size:10px;line-height:1.3;color:#cfe0f0;background:rgba(0,0,0,.88);pointer-events:none';
-    line.textContent='Build 4.3.1 | WebView '+(m?m[1]:'?')+' | app.js: '+(f.app?'ok':'NOT RUNNING')+' | database: '+(f.db?'ok':'not loaded')+' | scanner: '+(f.scan?'ok':'not running')+' | native: '+((window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())?'yes':'no');
+    line.textContent='Build 4.3.2 | WebView '+(m?m[1]:'?')+' | app.js: '+(f.app?'ok':'NOT RUNNING')+' | database: '+(f.db?'ok':'not loaded')+' | scanner: '+(f.scan?'ok':'not running')+' | native: '+((window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())?'yes':'no');
     document.body.appendChild(line);
   }catch(e){}},3000);
 })();
@@ -61,7 +61,7 @@
     </div>
     <p class="muted small vehicle-coverage-note">Vehicle selection identifies the car for the report. Actual code and module support depends on the exact year, engine and adapter.</p><div class="field" style="margin-top:13px"><label for="codes">Code(s)</label><input id="codes" autocapitalize="characters" autocomplete="off" placeholder="P0301 or P0301, P0171"></div>
     <div class="chips" id="quickCodes" aria-label="Common codes"></div>
-    <div class="symptom-panel"><div class="symptom-title"><b>What is happening with the car?</b><span class="tag">Offline checklist</span></div><div id="symptomPicker"></div><details class="compact-details"><summary>Add a short note (optional)</summary><textarea id="symptoms" rows="2" placeholder="Optional extra detail"></textarea></details></div>
+    <div class="symptom-panel" id="symptomPanel" hidden><div class="symptom-title"><b id="symptomTitle">What are you noticing?</b><span class="tag">Code-based checklist</span></div><div id="symptomPicker" aria-live="polite"></div><details class="compact-details"><summary>Add a short note (optional)</summary><textarea id="symptoms" rows="2" placeholder="Optional extra detail"></textarea></details></div>
     <div class="actions"><button class="primary" id="runBtn" type="button">Diagnose</button></div>
     <div class="actions"><button class="secondary" id="sampleBtn" type="button">Try sample</button><button class="secondary" id="clearBtn" type="button">Clear</button></div>
     <p id="status" class="hint" role="status"></p>

@@ -1,6 +1,6 @@
 {
   "name": "ai-car-doctor",
-  "version": "4.3.1",
+  "version": "4.3.2",
   "private": true,
   "description": "Bobby Car Doctor - offline OBD-II scanner and code guide",
   "dependencies": {

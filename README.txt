@@ -1,10 +1,10 @@
-BOBBY CAR DOCTOR — VERSION 4.3.1
+BOBBY CAR DOCTOR — VERSION 4.3.2
 
 Current app features
 - Offline lookup using the included DTC database (662 entries).
 - Vehicle make/model/year/engine selection for report context. The expanded selector includes popular makes and models from several regions. A listed vehicle is not a promise that every ECU or code is supported.
 - Smart Fix step checklist and detailed code information.
-- Tap-first offline symptom checklist: mechanics can select observed symptoms instead of typing. Optional text note remains available. Selected observations appear in the report and are used by Smart Fix to prioritise relevant checks. Checklist text, spacing and checkbox dimensions scale with the existing Small/Normal/Large/Extra Large setting.
+- Code-triggered offline symptom checklist: it stays hidden until a valid DTC is entered, then displays observations relevant to that code (for example, misfire-related observations for P0301 or cooling/overheating observations for cooling-system codes). When the entered code changes, the options update and no-longer-relevant selections are cleared. Mechanics select only what they actually observe; selections appear in the report and Smart Fix uses them to prioritise checks. Optional text note remains available inside the code-triggered panel. Checklist sizing follows the existing Small/Normal/Large/Extra Large setting.
 - Scan, live-data and battery screens are available in the installed app/demo mode as previously implemented.
 - Report history remains on the phone and expires after 7 days (20 reports maximum).
 

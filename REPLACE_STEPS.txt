@@ -1,0 +1,12 @@
+BOBBY CAR DOCTOR 4.3.2 — PATCH ONLY
+
+1. Extract this ZIP.
+2. Open the folder Bobby_Car_Doctor_Dynamic_Symptoms_Update.
+3. Replace the matching five files in the root of your existing GitHub/Capacitor project.
+4. Commit/push the changes, then run your normal APK build workflow.
+
+Do not delete or replace dtc-database.js, scanner.js, obd.js, native Android plugin files, icons, or other project files. This patch only changes the five files included here.
+
+Behavior: the symptom panel is hidden until a valid DTC is entered. Its options are selected from the entered code category and update when the code changes. P0301 shows misfire-related observations; cooling-related DTCs such as P0217/P0128 show overheating/coolant observations. Selected observations are passed into the existing report and Smart Fix flow. Checkbox sizing follows the existing Small/Normal/Large/Extra Large setting.
+
+Hardware note: this is an app/UI logic update. It does not validate Bluetooth communication with a real vehicle or adapter.

@@ -31,7 +31,7 @@ const isNative = !!(window.Capacitor && typeof Capacitor.isNativePlatform === 'f
 let demoParam = false; try { demoParam = new URLSearchParams(location.search).get('demo') === '1'; } catch (e) { /* ignore */ }
 const appMode = isNative || demoParam;   // scanner screens exist in the installed app (or in a browser with ?demo=1)
 document.body.classList.toggle('native', appMode);
-const APP_VERSION = '4.3.1';
+const APP_VERSION = '4.3.2';
 
 function opt(label, value = label) { const o = document.createElement('option'); o.textContent = label; o.value = value; return o; }
 Object.keys(VEHICLES).sort().forEach(m => make.appendChild(opt(m)));
@@ -63,27 +63,38 @@ const SYMPTOM_LABELS = {};
 Object.keys(SYMPTOM_GROUPS).forEach(g => SYMPTOM_GROUPS[g].forEach(x => SYMPTOM_LABELS[x[0]] = x[1]));
 let selectedSymptoms = [];
 function symptomGroupFor(code) {
-  if (/^P03[0-9A-C]|^P031[0-9A-C]/.test(code)) return 'misfire';
-  if (/^P017[0-5]|lean|rich|fuel trim/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'mixture';
-  if (/^P042[0-9]|catalyst/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'exhaust';
-  if (/^P044[0-9]|^P045[0-9]|evap|purge/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'evap';
-  if (/^P013|^P014|^P015|^P016|oxygen sensor|air.?fuel/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'oxygen';
-  if (/^P07|transmission/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'transmission';
+  const title = (DB()[code] && DB()[code].title || '');
+  const has = pattern => pattern.test(code) || pattern.test(title);
+  if (has(/^P0217$|^P011[5-9]$|^P012[5-8]$|^P2181$|^P1299$|overheat|coolant temperature|cooling system/i)) return 'cooling';
+  if (has(/^P03[0-9A-C][0-9A-F]$|misfire|cylinder [0-9].*misfire/i)) return 'misfire';
+  if (has(/^P017[0-5]$|lean|rich|fuel trim/i)) return 'mixture';
+  if (has(/^P042[0-9]$|catalyst|exhaust efficiency/i)) return 'exhaust';
+  if (has(/^P044[0-9]$|^P045[0-9]$|evap|purge/i)) return 'evap';
+  if (has(/^P013|^P014|^P015|^P016|oxygen sensor|air.?fuel/i)) return 'oxygen';
+  if (has(/^P07|transmission/i)) return 'transmission';
+  if (has(/^P056|voltage|charging/i)) return 'charging';
   if (/^U/.test(code)) return 'network';
   if (/^C/.test(code)) return 'chassis';
   if (/^B/.test(code)) return 'body';
-  if (/^P01(1[5-9]|2[5-8])|coolant|temperature/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'cooling';
-  if (/^P056|voltage|charging/i.test(code + ' ' + (DB()[code] && DB()[code].title || ''))) return 'charging';
   return 'general';
 }
 function renderSymptomPicker() {
-  const box = $('symptomPicker'); if (!box) return;
-  const codes = (codeInput.value.toUpperCase().match(/[PBCU][0-3][0-9A-F]{3}/g) || []);
-  const groups = []; (codes.length ? codes : ['']).forEach(c => { const g = symptomGroupFor(c); if (groups.indexOf(g) < 0) groups.push(g); });
+  const box = $('symptomPicker'), panel = $('symptomPanel'); if (!box || !panel) return;
+  const codes = [...new Set(codeInput.value.toUpperCase().match(/[PBCU][0-3][0-9A-F]{3}/g) || [])];
+  if (!codes.length) {
+    panel.hidden = true;
+    selectedSymptoms = [];
+    box.innerHTML = '';
+    return;
+  }
+  const groups = []; codes.forEach(c => { const g = symptomGroupFor(c); if (groups.indexOf(g) < 0) groups.push(g); });
   const options = [], seen = {};
-  groups.forEach(g => SYMPTOM_GROUPS[g].forEach(x => { if (!seen[x[0]]) { seen[x[0]] = 1; options.push(x); } }));
-  selectedSymptoms = selectedSymptoms.filter(id => !!SYMPTOM_LABELS[id]);
-  box.innerHTML = '<p class="muted small symptom-hint">Tap anything you notice. You can select more than one. This helps Smart Fix focus its guidance; it does not confirm a cause.</p><div class="symptom-grid">' + options.map(x => '<label class="symptom-option' + (selectedSymptoms.indexOf(x[0]) >= 0 ? ' selected' : '') + '"><input type="checkbox" data-symptom="' + esc(x[0]) + '"' + (selectedSymptoms.indexOf(x[0]) >= 0 ? ' checked' : '') + '><span>' + esc(x[1]) + '</span></label>').join('') + '</div><p class="symptom-count" id="symptomCount">' + selectedSymptoms.length + ' selected</p>';
+  groups.forEach(g => (SYMPTOM_GROUPS[g] || []).forEach(x => { if (!seen[x[0]]) { seen[x[0]] = 1; options.push(x); } }));
+  const allowed = options.map(x => x[0]);
+  selectedSymptoms = selectedSymptoms.filter(id => allowed.indexOf(id) >= 0);
+  panel.hidden = false;
+  $('symptomTitle').textContent = codes.length === 1 ? 'What are you noticing with ' + codes[0] + '?' : 'What are you noticing with these codes?';
+  box.innerHTML = '<p class="muted small symptom-hint">Select only the symptoms actually present. Options are suggested from the entered code; they are not guaranteed symptoms or confirmed causes.</p><div class="symptom-grid">' + options.map(x => '<label class="symptom-option' + (selectedSymptoms.indexOf(x[0]) >= 0 ? ' selected' : '') + '"><input type="checkbox" data-symptom="' + esc(x[0]) + '"' + (selectedSymptoms.indexOf(x[0]) >= 0 ? ' checked' : '') + '><span>' + esc(x[1]) + '</span></label>').join('') + '</div><p class="symptom-count" id="symptomCount">' + selectedSymptoms.length + ' selected</p>';
 }
 
 
