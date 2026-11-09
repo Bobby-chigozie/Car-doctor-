@@ -305,11 +305,13 @@ function card(c) {
   if (known && v && (kind === 'manufacturer' || /bank|sensor|cylinder/i.test(d.title))) ctx = `<p class="muted small" style="margin:6px 0 0">${esc(v)}: confirm bank, sensor and cylinder numbering for this exact engine.</p>`;
   return `<article class="rcard"><div class="fault-head"><div><span class="code">${esc(c)}</span>${kind === 'manufacturer' ? '<span class="tag">Vehicle-specific</span>' : ''}</div><span class="severity ${urg.cls}">${esc(urg.label)}</span></div>` +
     `<div class="title">${esc(d.title)}</div><p class="muted small" style="margin:0">${known ? esc(s.system || 'Offline reference') : 'Not in the database — needs a verified lookup'}</p>${ctx}` +
-    `<div class="card-actions"><button class="smart" type="button" data-go="fix/${esc(c)}"><strong>🔧 Smart Fix</strong><span>›</span></button><button type="button" data-go="details/${esc(c)}"><strong>📋 Details</strong><span>›</span></button></div></article>`;
+    `<div class="card-actions"><button class="smart" type="button" data-go="fix/${esc(c)}"><strong>🔧 Smart Fix</strong><span>›</span></button><button type="button" data-go="details/${esc(c)}"><strong>📋 Details</strong><span>›</span></button></div>` +
+    `<button class="secondary search-online" type="button" data-search="${esc(c)}">🔎 Search online <small>(needs internet)</small></button></article>`;
 }
 function codeHead(c, d) {
   const urg = urgencyFor(c, d);
-  return `<div class="rcard"><div class="fault-head"><span class="code">${esc(c)}</span><span class="severity ${urg.cls}">${esc(urg.label)}</span></div><div class="title">${esc(d.title)}</div></div><div class="note-box">${esc(urg.text)}</div>`;
+  return `<div class="rcard"><div class="fault-head"><span class="code">${esc(c)}</span><span class="severity ${urg.cls}">${esc(urg.label)}</span></div><div class="title">${esc(d.title)}</div></div><div class="note-box">${esc(urg.text)}</div>` +
+    `<button class="secondary search-online" type="button" data-search="${esc(c)}">🔎 Search online for ${esc(c)} <small>(needs internet — opens your browser)</small></button>`;
 }
 function observationGuidance(ids) {
   const rules = {
@@ -473,6 +475,18 @@ function nativePlugin(name) {
   if (C && typeof C.registerPlugin === 'function') return C.registerPlugin(name);
   throw new Error(name + ' is not available');
 }
+
+/* ======================= SEARCH ONLINE (the one feature that needs internet) ======================= */
+function searchOnlineUrl(c) {
+  const d = getCode(c), v = vehicleLine();
+  const q = [v, c, d.title, 'location diagram fix'].filter(Boolean).join(' ');
+  return 'https://www.google.com/search?q=' + encodeURIComponent(q);
+}
+async function openSearch(c) {
+  const url = searchOnlineUrl(c);
+  try { await nativePlugin('Browser').open({ url }); return; } catch (e) { /* no Browser plugin: fall back below */ }
+  try { window.open(url, '_blank'); } catch (e2) { /* last resort: nothing we can do offline */ }
+}
 function reportText(short) {
   if (!lastReport) return '';
   const when = new Date(lastReport.time).toLocaleString();
@@ -564,6 +578,7 @@ $('tourSkip').addEventListener('click', endTour);
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]'); if (g) { go(g.getAttribute('data-go')); return; }
   const n = e.target.closest('[data-nav]'); if (n) { goTab(n.getAttribute('data-nav')); return; }
+  const srch = e.target.closest('[data-search]'); if (srch) { openSearch(srch.getAttribute('data-search')); return; }
   const q = e.target.closest('[data-quick]');
   if (q) { const c = q.getAttribute('data-quick'), cur = codeInput.value.trim(); if (!cur.toUpperCase().includes(c)) codeInput.value = cur ? cur.replace(/[,\s]+$/, '') + ', ' + c : c; renderSymptomPicker(); return; }
   const done = e.target.closest('.smart-done');

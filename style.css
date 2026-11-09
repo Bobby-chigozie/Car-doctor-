@@ -184,3 +184,7 @@ body.hide-safety .safety-line{display:none}
 .vehicle-coverage-note{margin:8px 2px 0;line-height:1.4}
 .observed-box{border-left:4px solid var(--accent)}
 @media(max-width:360px){.symptom-grid{grid-template-columns:1fr}}
+
+/* Search-online button: the one place the app reaches outside itself */
+.search-online{display:block;width:100%;margin-top:10px;text-align:center}
+.search-online small{display:block;font-weight:500;opacity:.75;font-size:.78em;margin-top:2px}
