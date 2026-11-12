@@ -62,6 +62,48 @@ const SYMPTOM_GROUPS = {
 const SYMPTOM_LABELS = {};
 Object.keys(SYMPTOM_GROUPS).forEach(g => SYMPTOM_GROUPS[g].forEach(x => SYMPTOM_LABELS[x[0]] = x[1]));
 let selectedSymptoms = [];
+
+/* ---------- Symptom-first lookup: no code yet, just tap what's happening ---------- */
+const GROUP_LABELS = { misfire: 'Engine misfire', mixture: 'Fuel mixture (lean/rich)', exhaust: 'Exhaust / catalyst', evap: 'Fuel system / EVAP', oxygen: 'Oxygen sensor', transmission: 'Transmission', network: 'Network / communication', chassis: 'Chassis (brakes/steering)', body: 'Body (lights/airbag)', cooling: 'Cooling / overheating', charging: 'Battery / charging', general: 'General engine problem' };
+const GROUP_CODES = { misfire: ['P0300', 'P0301', 'P0302', 'P0303', 'P0304'], mixture: ['P0171', 'P0172', 'P0174', 'P0175'], exhaust: ['P0420', 'P0430'], evap: ['P0442', 'P0446', 'P0455'], oxygen: ['P0130', 'P0133', 'P0135'], transmission: ['P0700', 'P0715', 'P0720'], network: ['U0100', 'U0101'], chassis: [], body: [], cooling: ['P0217', 'P0128'], charging: ['P0562', 'P0563'], general: [] };
+let symFirstSelected = [];
+function symFirstOptions() {
+  const seen = {}, cats = Object.keys(SYMPTOM_GROUPS);
+  return cats.map(g => {
+    const opts = SYMPTOM_GROUPS[g].filter(x => { if (seen[x[0]]) return false; seen[x[0]] = 1; return true; });
+    return [g, opts];
+  }).filter(x => x[1].length);
+}
+function renderSymptomFirst() {
+  const box = $('symFirstBox'); if (!box) return;
+  box.innerHTML = symFirstOptions().map(([g, opts]) =>
+    `<div class="symfirst-group"><h4>${esc(GROUP_LABELS[g] || g)}</h4><div class="symptom-grid">` +
+    opts.map(x => `<label class="symptom-option${symFirstSelected.indexOf(x[0]) >= 0 ? ' selected' : ''}"><input type="checkbox" data-symfirst="${esc(x[0])}"${symFirstSelected.indexOf(x[0]) >= 0 ? ' checked' : ''}><span>${esc(x[1])}</span></label>`).join('') +
+    '</div></div>').join('');
+  renderSymFirstResults();
+}
+function symptomFirstGroups() {
+  if (!symFirstSelected.length) return [];
+  const counts = {};
+  Object.keys(SYMPTOM_GROUPS).forEach(g => {
+    const ids = SYMPTOM_GROUPS[g].map(x => x[0]);
+    const hit = symFirstSelected.filter(id => ids.indexOf(id) >= 0).length;
+    if (hit) counts[g] = hit;
+  });
+  return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+}
+function renderSymFirstResults() {
+  const out = $('symFirstResults'); if (!out) return;
+  const groups = symptomFirstGroups();
+  if (!groups.length) { out.innerHTML = symFirstSelected.length ? '' : '<p class="muted small center">Tap what the car is doing above. No typing needed.</p>'; return; }
+  out.innerHTML = '<h3>Possible areas, from what you picked</h3>' + groups.map(g => {
+    const codes = GROUP_CODES[g] || [];
+    return `<div class="section"><h4>${esc(GROUP_LABELS[g] || g)}</h4>` +
+      (codes.length ? `<button type="button" class="secondary" data-symfirst-view="${codes.join(',')}">View typical codes (${esc(codes.join(', '))})</button>` : '<p class="muted small">No fixed code list for this area — it needs a direct check.</p>') +
+      '</div>';
+  }).join('') + `<p class="muted small">${sw('These are starting points for inspection from the symptoms picked, not a diagnosis. A real scan or test should confirm the exact code.', 'These are only guesses from what you picked. A real scan is needed to know for sure.')}</p>`;
+}
+
 function symptomGroupFor(code) {
   const title = (DB()[code] && DB()[code].title || '');
   const has = pattern => pattern.test(code) || pattern.test(title);
@@ -146,10 +188,10 @@ function getCode(c) { return DB()[c] || fallback(c); }
 function urgencyFor(c, d) {
   const n = parseInt(c.slice(1), 16);
   if (/^C/.test(c) || /^B0/.test(c) || c === 'P0217' || /^P05(2[0-4])$/.test(c) || /^P0A/.test(c))
-    return {label:'Stop and check', cls:'high', text:'This can affect safety (brakes, steering, airbags, overheating, oil pressure or hybrid system). If the car behaves badly or a red warning light is on, park safely and get qualified help.'};
+    return {label:'Stop and check', cls:'high', text: sw('This can affect safety (brakes, steering, airbags, overheating, oil pressure or hybrid system). If the car behaves badly or a red warning light is on, park safely and get qualified help.', 'This can be dangerous. If the car drives badly or a red light is on, stop the car safely now and get a mechanic.')};
   if (/^P03[0-3]/.test(c) || /^P011[5-9]$/.test(c) || /^P012[5-8]$/.test(c) || /^P017[0-5]$/.test(c) || /^P04[23]\d$/.test(c) || /^P056/.test(c) || /^P07/.test(c) || /^U/.test(c) || /^P0A/.test(c))
-    return {label:'Check soon', cls:'medium', text:'Not an emergency by itself, but do not ignore it. Avoid hard driving, and stop if the check-engine light flashes or the car shakes badly.'};
-  return {label:'Test before replacing', cls:'normal', text:'Use symptoms and test results to confirm the cause before replacing parts.'};
+    return {label:'Check soon', cls:'medium', text: sw('Not an emergency by itself, but do not ignore it. Avoid hard driving, and stop if the check-engine light flashes or the car shakes badly.', 'Not an emergency now, but fix it soon. Drive gently. Stop if the light flashes or the car shakes.')};
+  return {label:'Test before replacing', cls:'normal', text: sw('Use symptoms and test results to confirm the cause before replacing parts.', 'Check and test first. Do not just buy and change a part.')};
 }
 function smartSteps(c, d) {
   const t = String(d.title || '');
@@ -230,7 +272,7 @@ function vehicleLine() {
 
 /* ======================= SETTINGS (colours, text, font) ======================= */
 const SKEY = 'bcd_settings_v42';
-const DEF = { theme: 'dark', size: 'normal', color: 'auto', font: 'default', tips: false, safety: true, motion: true, speedU: 'kmh', tempU: 'c', pressU: 'kpa', autoLive: true, strip: true };
+const DEF = { theme: 'dark', size: 'normal', color: 'auto', font: 'default', tips: false, safety: true, motion: true, speedU: 'kmh', tempU: 'c', pressU: 'kpa', autoLive: true, strip: true, simpleWords: false };
 let showApp = appMode; try { showApp = appMode || new URLSearchParams(location.search).get('debug') === '1' || localStorage.getItem('bcd_debug') === '1'; } catch (e) { /* ignore */ }
 const THEMES = [
   ['dark', 'Dark blue', '#0d2035', '#35c8ff'], ['black', 'Pure black', '#000000', '#35c8ff'], ['light', 'Light', '#ffffff', '#0a6fb4'],
@@ -261,10 +303,13 @@ function applySettings() {
   if (typeof refreshLiveUi === 'function') refreshLiveUi();
   const meta = document.querySelector('meta[name="theme-color"]'); if (meta) { const t = THEMES.find(x => x[0] === S.theme); if (t) meta.setAttribute('content', t[2]); }
 }
+/* Simple wording: when on, a few fixed hints/notices use shorter, plainer sentences. This does not change the 662-entry
+   code database itself; it only swaps a small set of app-written hint and safety sentences. */
+function sw(normal, simple) { return S.simpleWords ? simple : normal; }
 function renderSettings() {
   const pressed = v => ' aria-pressed="' + v + '"';
   const opts = '<div class="set-group"><h3>Options</h3>' +
-    [['tips', 'Tips on Home', 'Show a short tip on the Home screen'], ['safety', 'Safety reminder', 'Show the short reminder under reports'], ['motion', 'Animations', 'Slide effect between screens']]
+    [['tips', 'Tips on Home', 'Show a short tip on the Home screen'], ['safety', 'Safety reminder', 'Show the short reminder under reports'], ['motion', 'Animations', 'Slide effect between screens'], ['simpleWords', 'Simple wording', 'Shorter, plainer sentences in hints and safety notes']]
       .map(r => `<div class="row"><div>${r[1]}<small>${r[2]}</small></div><label class="switch"><input type="checkbox" data-sw="${r[0]}"${S[r[0]] ? ' checked' : ''}><span></span></label></div>`).join('') + '</div>';
   const seg = (key, items) => '<div class="seg">' + items.map(i => `<button type="button" data-set="${key}:${i[0]}"${pressed(S[key] === i[0])}>${i[1]}</button>`).join('') + '</div>';
   const appOpts = showApp ? '<div class="set-group"><h3>Car scanner</h3>' +
@@ -371,9 +416,9 @@ function renderHistory() {
 function setSel(sel, val) { if (val) sel.value = val; }
 
 /* ======================= SCREENS (tap → next page) ======================= */
-const SCREENS = ['home', 'diagnose', 'results', 'fix', 'details', 'share', 'scan', 'live', 'history', 'settings'];
+const SCREENS = ['home', 'diagnose', 'results', 'fix', 'details', 'share', 'jobsheet', 'symptoms', 'vehiclelog', 'scan', 'live', 'history', 'settings'];
 const NATIVE_ONLY = ['scan', 'live'];
-const PARENT = { fix: 'results', details: 'results', share: 'results', results: 'diagnose' };
+const PARENT = { fix: 'results', details: 'results', share: 'results', jobsheet: 'results', results: 'diagnose', symptoms: 'home', vehiclelog: 'home' };
 let navDepth = 0, lastReport = null;
 function parseHash() {
   const h = (location.hash || '').replace(/^#\/?/, ''), i = h.indexOf('/');
@@ -393,6 +438,9 @@ function show(name, arg) {
   else if (name === 'history') renderHistory();
   else if (name === 'settings') renderSettings();
   else if (name === 'share') renderShare();
+  else if (name === 'jobsheet') renderJobSheet();
+  else if (name === 'symptoms') renderSymptomFirst();
+  else if (name === 'vehiclelog') renderVehicleLog();
   else if (name === 'results') renderResultsScreen();
   else if (name === 'diagnose') renderQuick();
   window.scrollTo(0, 0);
@@ -431,9 +479,11 @@ function diagnose() {
     if (year && !/^(19|20)\d{2}$/.test(year)) warn = 'Note: "' + year + '" does not look like a 4-digit year.';
     else if (year && +year < 1996) warn = 'Note: vehicles before about 1996 may not use standard OBD-II codes.';
     for (const k in doneSteps) delete doneSteps[k];
-    lastReport = { codes, vehicle: vehicleLine() || 'Vehicle not specified', symptoms: selectedSymptoms.slice(), symptomNote: $('symptoms').value.trim(), time: Date.now(), demo: !!window.acdDemoScan };
+    const plate = $('plate') ? $('plate').value.trim() : '';
+    lastReport = { codes, vehicle: vehicleLine() || 'Vehicle not specified', plate, symptoms: selectedSymptoms.slice(), symptomNote: $('symptoms').value.trim(), time: Date.now(), demo: !!window.acdDemoScan };
     window.acdDemoScan = false;
     saveHistory(codes, !!lastReport.demo);
+    if (plate) vlogRecordVisit(plate, lastReport.vehicle, codes, lastReport.demo);
     const known = codes.filter(c => DB()[c]).length;
     statusBox.textContent = `${codes.length} code(s) processed offline (${known} in the database, ${codes.length - known} not).` + (warn ? ' ' + warn : '');
     $('lastReportTile').hidden = false;
@@ -450,6 +500,7 @@ function renderResultsScreen() {
 $('runBtn').addEventListener('click', diagnose);
 codeInput.addEventListener('input', renderSymptomPicker);
 document.addEventListener('change', e => { const cb = e.target.closest('[data-symptom]'); if (!cb) return; const id = cb.getAttribute('data-symptom'); if (cb.checked && selectedSymptoms.indexOf(id) < 0) selectedSymptoms.push(id); else if (!cb.checked) selectedSymptoms = selectedSymptoms.filter(x => x !== id); cb.closest('.symptom-option').classList.toggle('selected', cb.checked); const count = $('symptomCount'); if (count) count.textContent = selectedSymptoms.length + ' selected'; });
+document.addEventListener('change', e => { const cb = e.target.closest('[data-symfirst]'); if (!cb) return; const id = cb.getAttribute('data-symfirst'); if (cb.checked && symFirstSelected.indexOf(id) < 0) symFirstSelected.push(id); else if (!cb.checked) symFirstSelected = symFirstSelected.filter(x => x !== id); cb.closest('.symptom-option').classList.toggle('selected', cb.checked); renderSymFirstResults(); });
 codeInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); diagnose(); } });
 $('sampleBtn').addEventListener('click', () => {
   codeInput.value = 'P0301'; renderSymptomPicker();
@@ -457,9 +508,85 @@ $('sampleBtn').addEventListener('click', () => {
   diagnose();
 });
 $('clearBtn').addEventListener('click', () => {
-  codeInput.value = ''; $('symptoms').value = ''; selectedSymptoms = []; renderSymptomPicker(); $('year').value = ''; $('engine').value = '';
+  codeInput.value = ''; $('symptoms').value = ''; selectedSymptoms = []; renderSymptomPicker(); $('year').value = ''; $('engine').value = ''; if ($('plate')) $('plate').value = '';
   statusBox.textContent = 'Cleared.'; codeInput.focus();
 });
+
+/* ---------- Vehicle log: visits kept by plate/owner name, separate from the 7-day history ---------- */
+const VLOG_KEY = 'bcd_vehicles_v1', VLOG_MAX_VEHICLES = 60, VLOG_MAX_VISITS = 15;
+function vlogRead() { try { return JSON.parse(localStorage.getItem(VLOG_KEY) || '{}'); } catch (e) { return {}; } }
+function vlogSave(all) { try { localStorage.setItem(VLOG_KEY, JSON.stringify(all)); } catch (e) { /* optional */ } }
+function vlogKey(plate) { return String(plate || '').trim().toUpperCase(); }
+function vlogRecordVisit(plate, vehicle, codes, demo) {
+  const key = vlogKey(plate); if (!key) return;
+  const all = vlogRead();
+  const entry = all[key] || { plate: plate.trim(), vehicle: vehicle, visits: [] };
+  entry.vehicle = vehicle || entry.vehicle;
+  entry.visits.unshift({ time: Date.now(), codes: codes.slice(0, 12), demo: !!demo });
+  entry.visits = entry.visits.slice(0, VLOG_MAX_VISITS);
+  all[key] = entry;
+  const keys = Object.keys(all);
+  if (keys.length > VLOG_MAX_VEHICLES) {
+    keys.sort((a, b) => (all[a].visits[0] ? all[a].visits[0].time : 0) - (all[b].visits[0] ? all[b].visits[0].time : 0));
+    delete all[keys[0]];
+  }
+  vlogSave(all);
+}
+function vlogDelete(key) { const all = vlogRead(); delete all[key]; vlogSave(all); renderVehicleLog(); }
+function renderVehicleLog() {
+  const box = $('vehicleLogList'); if (!box) return;
+  const all = vlogRead();
+  const keys = Object.keys(all).sort((a, b) => (all[b].visits[0] ? all[b].visits[0].time : 0) - (all[a].visits[0] ? all[a].visits[0].time : 0));
+  if (!keys.length) { box.innerHTML = `<p class="muted center">${sw('No saved vehicles yet. Add a plate or owner name on the Diagnose screen to start a vehicle log.', 'No cars saved yet. Add a plate number when you check a code, and it will show here.')}</p>`; return; }
+  box.innerHTML = keys.map(k => {
+    const v = all[k];
+    return `<details class="vlog-card"><summary><b>${esc(v.plate)}</b><small>${esc(v.vehicle || '')}</small><span class="muted small">${v.visits.length} visit(s)</span></summary>` +
+      v.visits.map(vi => `<div class="vlog-visit"><span class="muted small">${new Date(vi.time).toLocaleDateString()}</span> ${vi.codes.map(c => esc(c)).join(', ') || '(no codes)'}${vi.demo ? ' · DEMO' : ''}</div>`).join('') +
+      `<div class="actions"><button type="button" class="secondary" data-vlog-delete="${esc(k)}">Delete this vehicle</button></div></details>`;
+  }).join('');
+}
+
+/* ---------- Job sheet: a clean, shareable summary for the customer ---------- */
+function jobSheetText() {
+  if (!lastReport) return '';
+  const when = new Date(lastReport.time).toLocaleString();
+  const demoTag = lastReport.demo ? '*** DEMO: SIMULATED DATA, NOT FROM A REAL CAR ***\n' : '';
+  const plateLine = lastReport.plate ? ('Vehicle ID / Plate: ' + lastReport.plate + '\n') : '';
+  const lines = lastReport.codes.map(c => {
+    const d = getCode(c), u = urgencyFor(c, d), steps = smartSteps(c, d), done = doneSteps[c] || {};
+    const k = steps.filter((_, i) => done[i]).length;
+    return c + ' — ' + d.title + ' (' + u.label + ')\n  Checks done: ' + k + ' of ' + steps.length;
+  });
+  return demoTag + 'BOBBY CAR DOCTOR — JOB SHEET\n' + plateLine + 'Vehicle: ' + lastReport.vehicle + '\nDate: ' + when +
+    (lastReport.symptoms && lastReport.symptoms.length ? '\nObserved: ' + lastReport.symptoms.map(x => SYMPTOM_LABELS[x] || x).join(', ') : '') +
+    '\n\n' + lines.join('\n\n') +
+    '\n\n' + sw('These are possible causes, not a confirmed diagnosis. A qualified mechanic should confirm before parts are replaced.', 'These are possible causes only, not a confirmed fix. Please confirm before buying parts.');
+}
+function renderJobSheet() {
+  const el = $('jobsheetBody'); if (!el) return;
+  if (!lastReport) { el.innerHTML = '<p class="muted center">No report yet.</p>'; return; }
+  const when = new Date(lastReport.time).toLocaleString();
+  el.innerHTML = '<div class="jobsheet-card">' +
+    '<div class="jobsheet-head"><img src="logo.png" alt=""><div><b>Bobby Car Doctor</b><small>Diagnostic job sheet</small></div></div>' +
+    (lastReport.demo ? '<div class="demo-note">🎬 DEMO data — not a real scan</div>' : '') +
+    '<div class="jobsheet-row"><span>Vehicle</span><b>' + esc(lastReport.vehicle) + '</b></div>' +
+    (lastReport.plate ? '<div class="jobsheet-row"><span>Plate / ID</span><b>' + esc(lastReport.plate) + '</b></div>' : '') +
+    '<div class="jobsheet-row"><span>Date</span><b>' + esc(when) + '</b></div>' +
+    (lastReport.symptoms && lastReport.symptoms.length ? '<div class="jobsheet-row"><span>Observed</span><b>' + esc(lastReport.symptoms.map(x => SYMPTOM_LABELS[x] || x).join(', ')) + '</b></div>' : '') +
+    '<table class="jobsheet-table">' + lastReport.codes.map(c => {
+      const d = getCode(c), u = urgencyFor(c, d), steps = smartSteps(c, d), done = doneSteps[c] || {};
+      const k = steps.filter((_, i) => done[i]).length;
+      return '<tr><td>' + esc(c) + '</td><td>' + esc(d.title) + '</td><td><span class="severity ' + u.cls + '">' + esc(u.label) + '</span></td><td>' + k + '/' + steps.length + ' checked</td></tr>';
+    }).join('') + '</table>' +
+    '<p class="muted small">' + sw('These are possible causes, not a confirmed diagnosis. A mechanic should confirm before parts are replaced.', 'Possible causes only. A mechanic should confirm before buying parts.') + '</p>' +
+    '</div>';
+}
+async function jobSheetShare() {
+  const text = jobSheetText();
+  if (isNative) { try { await nativePlugin('Share').share({ title: 'Bobby Car Doctor job sheet', text, dialogTitle: 'Share job sheet' }); $('jobsheetStatus').textContent = 'Share menu opened.'; return; } catch (e) { if (/cancel/i.test(String(e && e.message))) return; } }
+  if (navigator.share) { try { await navigator.share({ title: 'Bobby Car Doctor job sheet', text }); $('jobsheetStatus').textContent = 'Share menu opened.'; return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  $('jobsheetStatus').textContent = (await copyText(text)) ? 'The share menu is not available here, so it was copied. Paste it in any app.' : 'Share is not available here.';
+}
 
 /* quick-pick codes (only codes that exist in the database) */
 const QUICK = ['P0300', 'P0301', 'P0171', 'P0172', 'P0420', 'P0442', 'P0128', 'P0113', 'P0335', 'P0401', 'P0500', 'P0505'];
@@ -579,6 +706,9 @@ document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]'); if (g) { go(g.getAttribute('data-go')); return; }
   const n = e.target.closest('[data-nav]'); if (n) { goTab(n.getAttribute('data-nav')); return; }
   const srch = e.target.closest('[data-search]'); if (srch) { openSearch(srch.getAttribute('data-search')); return; }
+  const sfv = e.target.closest('[data-symfirst-view]');
+  if (sfv) { codeInput.value = sfv.getAttribute('data-symfirst-view'); go('diagnose'); renderSymptomPicker(); return; }
+  const vd = e.target.closest('[data-vlog-delete]'); if (vd) { vlogDelete(vd.getAttribute('data-vlog-delete')); return; }
   const q = e.target.closest('[data-quick]');
   if (q) { const c = q.getAttribute('data-quick'), cur = codeInput.value.trim(); if (!cur.toUpperCase().includes(c)) codeInput.value = cur ? cur.replace(/[,\s]+$/, '') + ', ' + c : c; renderSymptomPicker(); return; }
   const done = e.target.closest('.smart-done');
@@ -599,6 +729,9 @@ document.addEventListener('click', e => {
   }
 });
 if ($('clearHistoryBtn')) $('clearHistoryBtn').addEventListener('click', () => { try { localStorage.removeItem(HISTORY_KEY); } catch (e) { /* ignore */ } renderHistory(); });
+if ($('symFirstClearBtn')) $('symFirstClearBtn').addEventListener('click', () => { symFirstSelected = []; renderSymptomFirst(); });
+if ($('jobsheetShareBtn')) $('jobsheetShareBtn').addEventListener('click', jobSheetShare);
+if ($('jobsheetCopyBtn')) $('jobsheetCopyBtn').addEventListener('click', async () => { $('jobsheetStatus').textContent = (await copyText(jobSheetText())) ? 'Job sheet copied.' : 'Copy unavailable.'; });
 
 window.acdOnDb = () => { try { window.acdFlags && (window.acdFlags.db = 1); } catch (e) { /* ignore */ } showCount(); renderQuick(); if (pendingDiagnose) diagnose(); };
 showCount();

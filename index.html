@@ -46,6 +46,8 @@
     <button class="tile" data-go="history" type="button"><span class="ti">🕘</span><b>History</b><small>Past reports</small></button>
     <button class="tile" data-go="settings" type="button"><span class="ti">⚙️</span><b>Settings</b><small>Options and looks</small></button>
     <button class="tile" id="lastReportTile" data-go="results" type="button" hidden><span class="ti">📄</span><b>Last report</b><small>Open again</small></button>
+    <button class="tile" data-go="symptoms" type="button"><span class="ti">🩺</span><b>Not sure of the code?</b><small>Start from symptoms — no typing</small></button>
+    <button class="tile" data-go="vehiclelog" type="button"><span class="ti">🚗</span><b>Vehicle log</b><small>Past visits by plate</small></button>
   </div>
   <p class="tip" id="homeTips" hidden>💡 Type a code, then tap <b>Smart Fix</b> for step-by-step checks. Tap <b>ⓘ</b> any time for help.</p>
   <p class="muted small center footer-count"><span id="dbCount"></span></p>
@@ -59,7 +61,7 @@
       <div class="field"><label for="year">Year</label><input id="year" inputmode="numeric" maxlength="4" placeholder="Optional"></div>
       <div class="field"><label for="engine">Engine</label><input id="engine" placeholder="Optional"></div>
     </div>
-    <p class="muted small vehicle-coverage-note">Vehicle selection identifies the car for the report. Actual code and module support depends on the exact year, engine and adapter.</p><div class="field" style="margin-top:13px"><label for="codes">Code(s)</label><input id="codes" autocapitalize="characters" autocomplete="off" placeholder="P0301 or P0301, P0171"></div>
+    <p class="muted small vehicle-coverage-note">Vehicle selection identifies the car for the report. Actual code and module support depends on the exact year, engine and adapter.</p><div class="field" style="margin-top:13px"><label for="plate">Plate / owner name (optional)</label><input id="plate" autocomplete="off" placeholder="e.g. ABC-123-XY or owner's name"></div><div class="field" style="margin-top:10px"><label for="codes">Code(s)</label><input id="codes" autocapitalize="characters" autocomplete="off" placeholder="P0301 or P0301, P0171"></div>
     <div class="chips" id="quickCodes" aria-label="Common codes"></div>
     <div class="symptom-panel" id="symptomPanel" hidden><div class="symptom-title"><b id="symptomTitle">What are you noticing?</b><span class="tag">Code-based checklist</span></div><div id="symptomPicker" aria-live="polite"></div><details class="compact-details"><summary>Add a short note (optional)</summary><textarea id="symptoms" rows="2" placeholder="Optional extra detail"></textarea></details></div>
     <div class="actions"><button class="primary" id="runBtn" type="button">Diagnose</button></div>
@@ -74,7 +76,7 @@
     <p id="vehicleSummary" class="muted center"></p>
     <div id="reportContent"></div>
     <p class="safety-line small muted">A code is a clue, not proof that a part has failed. Test before replacing parts.</p>
-    <div class="actions"><button class="primary" data-go="share" type="button">📤 Share report</button><button class="secondary" id="copyBtn" type="button">Copy</button></div>
+    <div class="actions"><button class="primary" data-go="share" type="button">📤 Share report</button><button class="secondary" data-go="jobsheet" type="button">📄 Job sheet</button><button class="secondary" id="copyBtn" type="button">Copy</button></div>
   </div>
 </section>
 
@@ -91,6 +93,24 @@
     <p id="shareStatus" class="hint" role="status"></p>
     <p class="muted small">“Share…” opens your phone’s share menu: WhatsApp, Bluetooth, Gmail, Google, AI apps and more. “SMS text” sends a short version to a basic phone. “Send as file” sends a .txt file, for example by Bluetooth.</p>
   </div>
+</section>
+
+<section class="screen" id="s-jobsheet" data-title="Job sheet">
+  <div id="jobsheetBody"></div>
+  <div class="actions"><button class="primary" id="jobsheetShareBtn" type="button">📤 Share job sheet</button><button class="secondary" id="jobsheetCopyBtn" type="button">Copy</button></div>
+  <p id="jobsheetStatus" class="hint" role="status"></p>
+</section>
+
+<section class="screen" id="s-symptoms" data-title="Start from symptoms">
+  <p class="muted small" style="margin:0 2px 10px">Tap what the car is doing. No code needed yet — this suggests where to look.</p>
+  <div id="symFirstBox"></div>
+  <div id="symFirstResults"></div>
+  <div class="actions"><button class="secondary" id="symFirstClearBtn" type="button">Clear picks</button></div>
+</section>
+
+<section class="screen" id="s-vehiclelog" data-title="Vehicle log">
+  <div id="vehicleLogList"></div>
+  <p class="muted small center">Kept on this phone only, by plate or owner name you enter on the Diagnose screen.</p>
 </section>
 
 <section class="screen native-only" id="s-scan" data-title="Scan car"><div class="card" id="scanMount"></div></section>

@@ -188,3 +188,24 @@ body.hide-safety .safety-line{display:none}
 /* Search-online button: the one place the app reaches outside itself */
 .search-online{display:block;width:100%;margin-top:10px;text-align:center}
 .search-online small{display:block;font-weight:500;opacity:.75;font-size:.78em;margin-top:2px}
+
+/* Symptom-first lookup: grouped, orderly sections, not checkboxes scattered everywhere */
+.symfirst-group{margin-bottom:16px}
+.symfirst-group h4{margin:0 0 8px 2px;font-size:.92rem;color:var(--accent)}
+
+/* Vehicle log */
+.vlog-card{border:1px solid var(--line);border-radius:14px;background:var(--panel2);margin-bottom:10px;padding:4px 14px}
+.vlog-card summary{display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer;list-style:none}
+.vlog-card summary::-webkit-details-marker{display:none}
+.vlog-card summary small{flex:1;color:var(--text);opacity:.75;font-weight:500}
+.vlog-visit{padding:7px 0;border-top:1px solid var(--line);font-size:.9rem}
+
+/* Job sheet */
+.jobsheet-card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:16px}
+.jobsheet-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.jobsheet-head img{width:40px;height:40px;border-radius:10px;object-fit:cover}
+.jobsheet-head small{display:block;opacity:.7;font-weight:500}
+.jobsheet-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:.92rem}
+.jobsheet-row span{opacity:.7}
+.jobsheet-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.88rem}
+.jobsheet-table td{padding:7px 4px;border-top:1px solid var(--line);vertical-align:top}
