@@ -757,6 +757,7 @@ const GDEF = {
   speed: { label: 'Speed', min: 0, max: () => (S.speedU === 'mph' ? 125 : 200) },
   rpm: { label: 'Engine', min: 0, max: () => 8000 },
   temp: { label: 'Coolant', min: () => (S.tempU === 'f' ? 104 : 40), max: () => (S.tempU === 'f' ? 266 : 130) },
+  fuel: { label: 'Fuel', min: 0, max: 100 },
   volt: { label: 'Battery', min: 10, max: 16 }
 };
 const val = x => (typeof x === 'function' ? x() : x);
@@ -780,6 +781,8 @@ function refreshLiveUi() {
   setGauge('speed', sp && sp.n, sp && sp.n.toFixed(0), sp && sp.unit, '');
   setGauge('rpm', rp, rp !== null ? rp.toFixed(0) : '', 'rpm', rp !== null && rp >= 6000 ? 'red' : rp !== null && rp >= 4500 ? 'amber' : 'green');
   setGauge('temp', tp && tp.n, tp && tp.n.toFixed(0), tp && tp.unit, has(0x05) ? (LIVE[0x05] > 115 ? 'red' : LIVE[0x05] > 105 ? 'amber' : LIVE[0x05] < 60 ? 'blue' : 'green') : '');
+  const fl = has(0x2F) ? LIVE[0x2F] : null;
+  setGauge('fuel', fl, fl !== null ? fl.toFixed(0) : '', '%', fl !== null && fl <= 15 ? 'red' : fl !== null && fl <= 25 ? 'amber' : 'green');
   setGauge('volt', VOLT, VOLT !== null ? VOLT.toFixed(1) : '', 'V', VOLT !== null ? voltCls(VOLT) : '');
   const strip = $('liveStrip'); if (!strip) return;
   strip.hidden = !(appMode && S.strip && (has(0x0D) || has(0x0C) || has(0x05)));

@@ -105,6 +105,7 @@
     0x0F: { name: 'Intake air temp', unit: '°C', need: 1, dec: 0, fn: b => b[0] - 40 },
     0x10: { name: 'Air flow (MAF)', unit: 'g/s', need: 2, dec: 1, fn: b => (b[0] * 256 + b[1]) / 100 },
     0x11: { name: 'Throttle', unit: '%', need: 1, dec: 0, fn: b => b[0] * 100 / 255 },
+    0x2F: { name: 'Fuel level', unit: '%', need: 1, dec: 0, fn: b => b[0] * 100 / 255 },
     0x42: { name: 'Module voltage', unit: 'V', need: 2, dec: 2, fn: b => (b[0] * 256 + b[1]) / 1000 }
   };
   function decodePid(pid, bytes) {

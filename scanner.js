@@ -64,7 +64,8 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
         volt = 14.1 + Math.sin(run) * 0.05 - (speed === 0 ? 0.1 : 0);          // alternator charging
       }
       const cool = t < 9 ? 48 : Math.min(88, 48 + (t - 9) * 0.5);
-      return { rpm: Math.max(0, rpm), volt: volt, speed: speed, cool: cool, load: rpm ? 18 + speed * 0.5 : 0, thr: rpm ? 14 + speed * 0.3 : 0 };
+      const fuel = Math.max(40, 72 - t * 0.02); // fuel drops slowly over a long demo run, never a real tank
+      return { rpm: Math.max(0, rpm), volt: volt, speed: speed, cool: cool, fuel: fuel, load: rpm ? 18 + speed * 0.5 : 0, thr: rpm ? 14 + speed * 0.3 : 0 };
     }
     function reply(cmd) {
       const c = String(cmd).toUpperCase().replace(/\s+/g, ''), v = car();
@@ -82,6 +83,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       if (c === '010D') return '410D' + H(v.speed, 2) + '\r\r>';
       if (c === '010F') return '410F' + H(30 + 40, 2) + '\r\r>';
       if (c === '0111') return '4111' + H(v.thr * 2.55, 2) + '\r\r>';
+      if (c === '012F') return '412F' + H(v.fuel * 2.55, 2) + '\r\r>';
       if (c === '0142') return '4142' + H(v.volt * 1000, 4) + '\r\r>';
       if (c === '0902') return '014\r0: 49 02 01 31 48 47\r1: 43 4D 38 32 36 33 33\r2: 41 30 30 34 33 35 32\r\r>';
       if (c === '03') return cleared ? '4300\r\r>' : '00A\r0: 43 03 03 01 01 71\r1: 04 20 00 00 00 00 00\r\r>';
@@ -461,7 +463,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   // ====================================================================
   //  Background reader (pump): battery voltage, plus live data when switched on
   // ====================================================================
-  const LIVE_PIDS = [0x0C, 0x0D, 0x05, 0x04, 0x11, 0x06, 0x07, 0x10, 0x0B, 0x0F];
+  const LIVE_PIDS = [0x0C, 0x0D, 0x05, 0x2F, 0x04, 0x11, 0x06, 0x07, 0x10, 0x0B, 0x0F];
 
   function tileFor(pid) {
     let t = $('tile' + pid);
