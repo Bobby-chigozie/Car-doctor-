@@ -292,14 +292,29 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
     showConn();
     if (adapterOnly) return;
 
-    // 2. Does the CAR answer?
+    // 2. Does the CAR answer? Try auto protocol first; some genuine and cloned ELM327 adapters
+    //    cannot auto-detect certain cars, so if auto gives no data, try the common protocols by hand
+    //    before giving up — this alone fixes a large share of "adapter OK, car silent" cases.
     say('Adapter OK. Asking the car… (up to 15 seconds)', '');
-    const r0100 = await send('0100', 15000);
-    const c0100 = OBD.classify(r0100);
-    if (!(c0100.kind === 'data' && /41\s*00/i.test(r0100.replace(/\s+/g, ' ')))) {
+    let r0100 = await send('0100', 15000);
+    let c0100 = OBD.classify(r0100);
+    let gotData = c0100.kind === 'data' && /41\s*00/i.test(r0100.replace(/\s+/g, ' '));
+    if (!gotData) {
+      const FALLBACK_PROTOCOLS = ['6', '7', '8', '9', 'A', 'B', '3', '4', '5']; // CAN variants first (most 2008+ cars), then ISO/KWP
+      for (const p of FALLBACK_PROTOCOLS) {
+        say('Adapter OK. The car did not answer on auto — trying protocol ' + p + '…', '');
+        await send('ATSP' + p, 2000);
+        r0100 = await send('0100', 6000);
+        c0100 = OBD.classify(r0100);
+        gotData = c0100.kind === 'data' && /41\s*00/i.test(r0100.replace(/\s+/g, ' '));
+        if (gotData) { log('Car answered on protocol ' + p + ' (auto-detect missed it).'); break; }
+      }
+      if (!gotData) await send('ATSP0', 2000); // nothing worked: go back to auto for next time
+    }
+    if (!gotData) {
       throw new Error(c0100.kind === 'vehicle-error'
-        ? 'The adapter works but the car did not answer (' + c0100.text + '). Turn the ignition ON, push the adapter in firmly, and try again.'
-        : 'The adapter works but the car gave no clear answer. Turn the ignition ON and try again.');
+        ? 'The adapter works but the car did not answer (' + c0100.text + '), even after trying several protocols. Turn the ignition ON, push the adapter in firmly, and try again.'
+        : 'The adapter works but the car gave no clear answer, even after trying several protocols. Turn the ignition ON and try again.');
     }
     const pn = await send('ATDPN', 2500); isCan = OBD.protocolIsCan(pn);
   }
