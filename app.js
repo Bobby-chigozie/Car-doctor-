@@ -466,12 +466,24 @@ $('voltPill').addEventListener('click', () => go('live'));
 
 /* ======================= REPORT (diagnose → results) ======================= */
 let pendingDiagnose = false;
-function diagnose() {
+async function diagnose() {
   try {
-    const raw = codeInput.value.trim();
+    let raw = codeInput.value.trim();
+    // No code typed, but the adapter is connected: scan the car instead of asking to type one.
+    if (!raw && window.acdIsConnected && window.acdIsConnected() && window.acdScanFromDiagnose) {
+      if (window.acdIsBusy && window.acdIsBusy()) { statusBox.textContent = 'Still finishing the connection — wait a moment and tap Diagnose again.'; return; }
+      statusBox.textContent = 'Connected — scanning the car for codes…';
+      await window.acdScanFromDiagnose();
+      raw = codeInput.value.trim();
+      if (!raw) {
+        const scanStatus = document.getElementById('scanStatus');
+        statusBox.textContent = (scanStatus && scanStatus.textContent) || 'Scan finished with no codes, or it failed. Type a code below, or check the Scan screen.';
+        return;
+      }
+    }
     if (!dbReady()) { pendingDiagnose = true; statusBox.textContent = 'The code database is still loading. It will run by itself as soon as it is ready.'; return; }
     pendingDiagnose = false;
-    if (!raw) { statusBox.textContent = 'Enter a code, for example P0301.'; codeInput.focus(); return; }
+    if (!raw) { statusBox.textContent = isNative ? 'Enter a code, for example P0301, or connect the adapter to scan the car.' : 'Enter a code, for example P0301.'; codeInput.focus(); return; }
     const codes = [...new Set(raw.toUpperCase().match(/[PBCU][0-3][0-9A-F]{3}/g) || [])];
     if (!codes.length) { statusBox.textContent = 'No code recognized. Use a format like P0301, B1234, C1234 or U0100.'; return; }
     const year = $('year').value.trim();

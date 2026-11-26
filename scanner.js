@@ -22,6 +22,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
     '<div class="field"><label for="adapterSel">Bluetooth adapter</label><select id="adapterSel"><option value="">Looking for devices…</option></select></div>' +
     '<div class="actions"><button class="primary" id="scanBtn" type="button">Scan car</button><button class="secondary" id="connectBtn" type="button">Connect</button></div>' +
     '<div class="actions" style="margin-top:9px"><button class="secondary" id="findBtn" type="button">Find adapter</button><button class="secondary" id="clearCodesBtn" type="button">Clear codes</button></div>' +
+    '<div class="actions" id="continueWrap" style="margin-top:9px" hidden><button class="primary" data-nav="diagnose" type="button">✅ Connected — go to Diagnose →</button></div>' +
     '<div class="actions" style="margin-top:9px"><button class="secondary" id="demoBtn" type="button">🎬 Demo mode: off</button></div>' +
     '<p id="scanStatus" class="hint" role="status">Plug in the adapter, turn the ignition ON, then tap Connect.</p>' +
     '<details class="compact-details"><summary>More tools</summary><div class="actions"><button class="secondary" id="testBtn" type="button">Test adapter</button><button class="secondary" id="refreshBtn" type="button">Refresh list</button></div><pre id="scanLog" class="small logbox" style="display:none"></pre></details>';
@@ -207,10 +208,13 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   const trName = t => t === 'demo' ? 'Demo' : t === 'ble' ? 'Bluetooth LE' : 'Bluetooth Classic';
 
   function showConn() {
-    const cp = $('connPill'), cb = $('connectBtn');
+    const cp = $('connPill'), cb = $('connectBtn'), cw = $('continueWrap');
     if (cp) { cp.textContent = connectedAddr ? 'Connected' + (connectedTr ? ' · ' + (connectedTr === 'demo' ? 'DEMO' : connectedTr === 'ble' ? 'BLE' : 'Classic') : '') : 'Not connected'; cp.className = 'conn-pill ' + (connectedAddr ? 'on' : 'off'); }
     if (cb) cb.textContent = connectedAddr ? 'Disconnect' : 'Connect';
+    if (cw) cw.hidden = !connectedAddr;
     if (!connectedAddr) setVoltUi(null);
+    const note = $('diagConnNote');
+    if (note) note.textContent = connectedAddr ? '🔌 Adapter connected — tap Diagnose below to scan the car.' : '🔌 Not connected. Tap "Connect adapter" below, or type a code to look it up without scanning.';
   }
 
   async function ensureConnected(addr, tr) {
@@ -356,7 +360,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   }
 
   // ---------- Scan car ----------
-  async function scan() {
+  async function scan(silent) {
     if (!(await begin())) return;
     try {
       wantLink = true;
@@ -378,8 +382,13 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       }
       $('codes').value = all.join(', ');
       say('Scan complete. Stored codes: ' + (stored.join(', ') || 'none') + '. Pending codes: ' + (pending.join(', ') || 'none') + '. Opening the report…', 'ok');
+      // We just proved the car answers — if live data (speed/RPM/coolant/fuel) hasn't started yet
+      // (e.g. it failed quietly right at connect time), start it now instead of leaving it silent.
+      if (!liveOn && window.acdGet && window.acdGet('autoLive')) startLiveNow();
       window.acdDemoScan = demoOn;
-      $('runBtn').click();
+      // silent=true: called from the Diagnose screen, which will run the report itself once this
+      // returns. Don't also click runBtn here, or diagnose() would run twice for one scan.
+      if (!silent) $('runBtn').click();
     } catch (e) {
       say(e.message || String(e), 'bad');
     } finally { end(); }
@@ -692,7 +701,29 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   $('findBtn').addEventListener('click', findAdapter);
   $('liveBtn').addEventListener('click', toggleLive);
   $('infoBtn').addEventListener('click', readVehicleInfo);
+  if ($('diagClearCodesBtn')) $('diagClearCodesBtn').addEventListener('click', clearCodes);
   setVoltUi(null); renderTests(); showConn(); syncDemoUi();
+
+  // Let the Diagnose screen trigger a real scan (no typing) and check connection state.
+  window.acdIsConnected = () => !!connectedAddr;
+  window.acdIsBusy = () => busy;
+  window.acdScanFromDiagnose = () => scan(true);
+
+  // Bug fix: the Android Bluetooth picker is a separate system screen. After pairing the
+  // adapter there and coming back, the app's own paired-device list was stale until the user
+  // force-closed and reopened the app (sometimes twice). Re-read the paired list ourselves
+  // whenever the app becomes visible again, so it refreshes on its own.
+  let lastRefreshAt = 0;
+  function refreshOnReturn() {
+    if (document.hidden || busy) return;
+    const now = Date.now();
+    if (now - lastRefreshAt < 1500) return; // avoid double-firing from both events at once
+    lastRefreshAt = now;
+    refresh();
+  }
+  document.addEventListener('visibilitychange', refreshOnReturn);
+  window.addEventListener('focus', refreshOnReturn);
+  window.addEventListener('pageshow', refreshOnReturn);
 
   (async () => {
     if (!OBD) { try { await load('obd.js'); OBD = window.OBD; } catch (e) { /* loaded on demand later */ } }

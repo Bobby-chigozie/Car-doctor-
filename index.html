@@ -40,8 +40,8 @@
 <section class="screen active" id="s-home" data-title="Bobby Car Doctor">
   <div class="hero"><img class="hero-logo" src="logo.png" alt="Bobby Car Doctor"><div><h2>Bobby Car Doctor</h2><p class="muted">Fault codes made simple</p></div></div>
   <div class="tiles">
-    <button class="tile t-primary" data-go="diagnose" type="button"><span class="ti">🔎</span><b>Diagnose</b><small>Look up any code</small></button>
-    <button class="tile native-only" data-go="scan" type="button"><span class="ti">🔌</span><b>Scan car</b><small>Read codes</small></button>
+    <button class="tile native-only" data-go="scan" type="button"><span class="ti">🔌</span><b>Scan car</b><small>Connect adapter</small></button>
+    <button class="tile t-primary" data-go="diagnose" type="button"><span class="ti">🔎</span><b>Diagnose</b><small>Select car, scan or type a code</small></button>
     <button class="tile native-only" data-go="live" type="button"><span class="ti">🔋</span><b>Battery</b><small>Live voltage</small></button>
     <button class="tile" data-go="history" type="button"><span class="ti">🕘</span><b>History</b><small>Past reports</small></button>
     <button class="tile" data-go="settings" type="button"><span class="ti">⚙️</span><b>Settings</b><small>Options and looks</small></button>
@@ -61,10 +61,12 @@
       <div class="field"><label for="year">Year</label><input id="year" inputmode="numeric" maxlength="4" placeholder="Optional"></div>
       <div class="field"><label for="engine">Engine</label><input id="engine" placeholder="Optional"></div>
     </div>
-    <p class="muted small vehicle-coverage-note">Vehicle selection identifies the car for the report. Actual code and module support depends on the exact year, engine and adapter.</p><div class="field" style="margin-top:13px"><label for="plate">Plate / owner name (optional)</label><input id="plate" autocomplete="off" placeholder="e.g. ABC-123-XY or owner's name"></div><div class="field" style="margin-top:10px"><label for="codes">Code(s)</label><input id="codes" autocapitalize="characters" autocomplete="off" placeholder="P0301 or P0301, P0171"></div>
+    <p class="muted small vehicle-coverage-note">Vehicle selection identifies the car for the report. Actual code and module support depends on the exact year, engine and adapter.</p><div class="field" style="margin-top:13px"><label for="plate">Plate / owner name (optional)</label><input id="plate" autocomplete="off" placeholder="e.g. ABC-123-XY or owner's name"></div><div class="field" style="margin-top:10px"><label for="codes">Code(s) <span class="muted small">(leave blank to scan the car instead)</span></label><input id="codes" autocapitalize="characters" autocomplete="off" placeholder="Leave blank if connected, or type e.g. P0301"></div>
+    <p class="muted small native-only" id="diagConnNote"></p>
     <div class="chips" id="quickCodes" aria-label="Common codes"></div>
     <div class="symptom-panel" id="symptomPanel" hidden><div class="symptom-title"><b id="symptomTitle">What are you noticing?</b><span class="tag">Code-based checklist</span></div><div id="symptomPicker" aria-live="polite"></div><details class="compact-details"><summary>Add a short note (optional)</summary><textarea id="symptoms" rows="2" placeholder="Optional extra detail"></textarea></details></div>
     <div class="actions"><button class="primary" id="runBtn" type="button">Diagnose</button></div>
+    <div class="actions native-only"><button class="secondary" data-nav="scan" type="button">🔌 Connect adapter</button><button class="secondary" id="diagClearCodesBtn" type="button">Clear codes</button></div>
     <div class="actions"><button class="secondary" id="sampleBtn" type="button">Try sample</button><button class="secondary" id="clearBtn" type="button">Clear</button></div>
     <p id="status" class="hint" role="status"></p>
   </div>
@@ -128,8 +130,8 @@
 
 <nav class="bottom-nav" aria-label="Main navigation">
   <button class="nav-item active" data-nav="home" type="button"><span>⌂</span>Home</button>
-  <button class="nav-item" data-nav="diagnose" type="button"><span>🔎</span>Diagnose</button>
   <button class="nav-item native-only" data-nav="scan" type="button"><span>🔌</span>Scan</button>
+  <button class="nav-item" data-nav="diagnose" type="button"><span>🔎</span>Diagnose</button>
   <button class="nav-item native-only" data-nav="live" type="button"><span>🔋</span>Battery</button>
   <button class="nav-item" data-nav="history" type="button"><span>🕘</span>History</button>
 </nav>
