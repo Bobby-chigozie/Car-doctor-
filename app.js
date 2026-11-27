@@ -272,7 +272,7 @@ function vehicleLine() {
 
 /* ======================= SETTINGS (colours, text, font) ======================= */
 const SKEY = 'bcd_settings_v42';
-const DEF = { theme: 'dark', size: 'normal', color: 'auto', font: 'default', tips: false, safety: true, motion: true, speedU: 'kmh', tempU: 'c', pressU: 'kpa', autoLive: true, strip: true, simpleWords: false };
+const DEF = { theme: 'dark', size: 'normal', color: 'auto', font: 'default', tips: false, safety: true, motion: true, speedU: 'kmh', tempU: 'c', pressU: 'kpa', autoLive: true, strip: true, simpleWords: false, rawLog: false };
 let showApp = appMode; try { showApp = appMode || new URLSearchParams(location.search).get('debug') === '1' || localStorage.getItem('bcd_debug') === '1'; } catch (e) { /* ignore */ }
 const THEMES = [
   ['dark', 'Dark blue', '#0d2035', '#35c8ff'], ['black', 'Pure black', '#000000', '#35c8ff'], ['light', 'Light', '#ffffff', '#0a6fb4'],
@@ -313,7 +313,7 @@ function renderSettings() {
       .map(r => `<div class="row"><div>${r[1]}<small>${r[2]}</small></div><label class="switch"><input type="checkbox" data-sw="${r[0]}"${S[r[0]] ? ' checked' : ''}><span></span></label></div>`).join('') + '</div>';
   const seg = (key, items) => '<div class="seg">' + items.map(i => `<button type="button" data-set="${key}:${i[0]}"${pressed(S[key] === i[0])}>${i[1]}</button>`).join('') + '</div>';
   const appOpts = showApp ? '<div class="set-group"><h3>Car scanner</h3>' +
-    [['autoLive', 'Start live data when connected', 'Shows speed, RPM and temperature at the top'], ['strip', 'Show readings at the top', 'Speed, RPM and temperature under the title']]
+    [['autoLive', 'Start live data when connected', 'Shows speed, RPM and temperature at the top'], ['strip', 'Show readings at the top', 'Speed, RPM and temperature under the title'], ['rawLog', 'Show raw adapter log', 'Advanced: the technical AT commands sent to the adapter — only for troubleshooting']]
       .map(r => `<div class="row"><div>${r[1]}<small>${r[2]}</small></div><label class="switch"><input type="checkbox" data-sw="${r[0]}"${S[r[0]] ? ' checked' : ''}><span></span></label></div>`).join('') + '</div>' +
     '<div class="set-group"><h3>Units</h3><p class="muted small" style="margin:0 2px 6px">Speed</p>' + seg('speedU', [['kmh', 'km/h'], ['mph', 'mph']]) +
     '<p class="muted small" style="margin:10px 2px 6px">Temperature</p>' + seg('tempU', [['c', '°C'], ['f', '°F']]) +
@@ -452,7 +452,15 @@ function route() {
   show(name, arg);
 }
 function go(path) { if (location.hash === '#/' + path) { route(); return; } navDepth++; history.pushState({ d: navDepth }, '', '#/' + path); route(); }
-function goTab(path) { history.replaceState({ d: navDepth }, '', '#/' + path); route(); }
+// Bottom-nav tab taps: pushState (not replaceState) the FIRST time we leave Home, so there is
+// always a Home entry underneath for the phone's own Back button to land on. Switching between
+// tabs after that still overwrites in place, so Back doesn't need a tap per tab visited.
+function goTab(path) {
+  const leavingHome = parseHash().name === 'home' && path !== 'home';
+  if (leavingHome) { navDepth++; history.pushState({ d: navDepth }, '', '#/' + path); }
+  else history.replaceState({ d: navDepth }, '', '#/' + path);
+  route();
+}
 window.addEventListener('hashchange', route);
 window.addEventListener('popstate', e => { navDepth = (e.state && e.state.d) || 0; route(); });
 function goBack() {
@@ -463,6 +471,17 @@ function goBack() {
 $('backBtn').addEventListener('click', goBack);
 $('settingsBtn').addEventListener('click', () => go('settings'));
 $('voltPill').addEventListener('click', () => go('live'));
+
+// Android's own hardware/gesture back button. Without this, Android's default behaviour is to
+// quit the app the moment there is nowhere left to go back to in the page's own history — so it
+// often exits instead of going to the previous screen. This makes it behave like the on-screen
+// back arrow: go to the parent screen, and only exit the app from the Home screen.
+document.addEventListener('backButton', () => {
+  const { name } = parseHash();
+  if (navDepth > 0) { history.back(); return; }
+  if (name !== 'home') { goTab(PARENT[name] || 'home'); return; }
+  try { const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (App && App.exitApp) App.exitApp(); } catch (e) { /* ignore */ }
+});
 
 /* ======================= REPORT (diagnose → results) ======================= */
 let pendingDiagnose = false;
