@@ -19,13 +19,20 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   card.innerHTML =
     '<div class="row-between"><span class="conn-pill off" id="connPill">Not connected</span></div>' +
     '<p class="muted small" style="margin:0 0 10px">Works with standard <b>ELM327</b> Bluetooth adapters. Launch, GOLO and DiagZone adapters are not supported.</p>' +
+    '<div class="steps-card" id="connSteps">' +
+      '<div class="step-row"><span class="step-label">🔌 Adapter connected</span><span class="step-badge off" id="stepAdapter">Not connected</span></div>' +
+      '<div class="step-row"><span class="step-label">📶 Adapter responding</span><span class="step-badge off" id="stepResponding">Not checked</span></div>' +
+      '<div class="step-row"><span class="step-label">🚗 Vehicle ECU communication</span><span class="step-badge off" id="stepEcu">Not established</span></div>' +
+      '<div class="step-row"><span class="step-label">📈 Live-data PIDs supported</span><span class="step-badge off" id="stepPids">Not checked</span></div>' +
+    '</div>' +
     '<div class="field"><label for="adapterSel">Bluetooth adapter</label><select id="adapterSel"><option value="">Looking for devices…</option></select></div>' +
     '<div class="actions"><button class="primary" id="scanBtn" type="button">Scan car</button><button class="secondary" id="connectBtn" type="button">Connect</button></div>' +
     '<div class="actions" style="margin-top:9px"><button class="secondary" id="findBtn" type="button">Find adapter</button><button class="secondary" id="clearCodesBtn" type="button">Clear codes</button></div>' +
     '<div class="actions" id="continueWrap" style="margin-top:9px" hidden><button class="primary" data-nav="diagnose" type="button">✅ Connected — go to Diagnose →</button></div>' +
     '<div class="actions" style="margin-top:9px"><button class="secondary" id="demoBtn" type="button">🎬 Demo mode: off</button></div>' +
     '<p id="scanStatus" class="hint" role="status">Plug in the adapter, turn the ignition ON, then tap Connect.</p>' +
-    '<details class="compact-details"><summary>More tools</summary><div class="actions"><button class="secondary" id="testBtn" type="button">Test adapter</button><button class="secondary" id="refreshBtn" type="button">Refresh list</button></div><pre id="scanLog" class="small logbox" style="display:none"></pre></details>';
+    '<details class="compact-details"><summary>More tools</summary><div class="actions"><button class="secondary" id="testBtn" type="button">Test adapter</button><button class="secondary" id="refreshBtn" type="button">Refresh list</button></div></details>' +
+    '<pre id="scanLog" class="small logbox" hidden></pre>';
 
   // ---------- Live panel: battery, live data, vehicle info ----------
   const live = document.createElement('div');
@@ -132,7 +139,16 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   const BTNS = ['demoBtn', 'scanBtn', 'connectBtn', 'findBtn', 'clearCodesBtn', 'testBtn', 'refreshBtn', 'liveBtn', 'infoBtn'];
   const setButtons = d => BTNS.forEach(id => { const e = $(id); if (e) e.disabled = d; });
   const say = (t, cls) => { statusEl.textContent = t; statusEl.style.color = cls === 'bad' ? '#ffb4a8' : cls === 'ok' ? '#92f3d7' : ''; };
-  const log = t => { logEl.style.display = 'block'; logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; };
+  const log = t => { logEl.hidden = !(window.acdGet && window.acdGet('rawLog')); logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; };
+
+  // ---------- Plain-English connection steps panel (what "Scan car" is actually checking) ----------
+  function setStep(id, cls, text) { const el = $(id); if (el) { el.className = 'step-badge ' + cls; el.textContent = text; } }
+  function resetSteps() {
+    setStep('stepAdapter', 'off', 'Not connected');
+    setStep('stepResponding', 'off', 'Not checked');
+    setStep('stepEcu', 'off', 'Not established');
+    setStep('stepPids', 'off', 'Not checked');
+  }
   const load = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error(src + ' did not load')); document.head.appendChild(s); });
   const saved = () => { try { return localStorage.getItem('acd_adapter') || ''; } catch (e) { return ''; } };
   const save = a => { try { localStorage.setItem('acd_adapter', a); } catch (e) { /* ignore */ } };
@@ -267,6 +283,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
     for (const tr of transportOrder(addr)) {
       try {
         await connectOrThrow(addr, tr);
+        setStep('stepAdapter', 'ok', 'Connected');
         say('Checking the adapter (' + trName(tr) + ')…', '');
         let z;
         try { z = OBD.classify(await send('ATZ', 4000, 2500)); }
@@ -284,6 +301,8 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       }
     }
     if (!id) {
+      setStep('stepAdapter', connectedAddr ? 'ok' : 'bad', connectedAddr ? 'Connected' : 'Not connected');
+      setStep('stepResponding', 'bad', 'Failed');
       const info = await describeAdapter(addr);
       const kindText = info ? ' Android says this adapter is "' + info.type + '" type.' : '';
       throw new Error((last
@@ -291,6 +310,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
         : 'Could not connect to the adapter. Check it is plugged in with the ignition ON, and that no other app (such as DiagZone) is connected to it.')
         + kindText + ' Details: ' + problems.join(' | ') + ' The full log is below.');
     }
+    setStep('stepResponding', 'ok', 'Confirmed');
     for (const c of ['ATE0', 'ATL0', 'ATS0', 'ATH0', 'ATSP0']) await send(c, 2500);
     startPump();   // the adapter answers: start the battery voltage display
     showConn();
@@ -315,6 +335,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       }
       if (!gotData) await send('ATSP0', 2000); // nothing worked: go back to auto for next time
     }
+    setStep('stepEcu', gotData ? 'ok' : 'warn', gotData ? 'Established' : 'Not established');
     if (!gotData) {
       throw new Error(c0100.kind === 'vehicle-error'
         ? 'The adapter works but the car did not answer (' + c0100.text + '), even after trying several protocols. Turn the ignition ON, push the adapter in firmly, and try again.'
@@ -327,6 +348,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   async function connectToggle() {
     if (connectedAddr) { await disconnectNow(); return; }
     if (!(await begin())) return;
+    resetSteps();
     wantLink = true; reconnectTries = 0;
     try {
       await prepare(true);
@@ -344,11 +366,13 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
     try { await Obd.disconnect(); } catch (e) { /* ignore */ }
     connectedAddr = null; connectedTr = null; showConn();
     say('Disconnected.', '');
+    resetSteps();
   }
 
   // "Test adapter": connect + identify only. Reads nothing from the car and clears nothing.
   async function testAdapter() {
     if (!(await begin())) return;
+    resetSteps();
     try {
       wantLink = true;
       await prepare(true);
@@ -362,6 +386,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   // ---------- Scan car ----------
   async function scan(silent) {
     if (!(await begin())) return;
+    resetSteps();
     try {
       wantLink = true;
       await prepare();
@@ -530,6 +555,9 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
       if (v !== null) { got++; unsupported['m' + pid] = 0; lastVals[pid] = v; drawTile(pid); if (window.acdOnLive) window.acdOnLive(pid, v); }
       else if (OBD.classify(raw).kind === 'vehicle-error' || /NO DATA/i.test(raw)) { unsupported['m' + pid] = (unsupported['m' + pid] || 0) + 1; if (unsupported['m' + pid] >= 3 && liveBlank === 0) { /* may just be unsupported */ } }
     }
+    const supportedCount = Object.keys(lastVals).length;
+    if (supportedCount > 0) setStep('stepPids', 'ok', supportedCount + ' supported');
+    else if (tried > 0) setStep('stepPids', 'warn', 'Not established');
     if (got === 0 && tried > 0) { liveBlank++; } else { liveBlank = 0; }
     // A PID that never answers while others do is simply not supported by this car: hide it.
     for (const pid of LIVE_PIDS) if ((unsupported['m' + pid] || 0) >= 4 && liveBlank === 0) { unsupported[pid] = true; const t = $('tile' + pid); if (t) t.remove(); }
@@ -702,7 +730,7 @@ try { window.acdFlags && (window.acdFlags.scan = 1); } catch (e) { /* ignore */ 
   $('liveBtn').addEventListener('click', toggleLive);
   $('infoBtn').addEventListener('click', readVehicleInfo);
   if ($('diagClearCodesBtn')) $('diagClearCodesBtn').addEventListener('click', clearCodes);
-  setVoltUi(null); renderTests(); showConn(); syncDemoUi();
+  setVoltUi(null); renderTests(); showConn(); syncDemoUi(); resetSteps();
 
   // Let the Diagnose screen trigger a real scan (no typing) and check connection state.
   window.acdIsConnected = () => !!connectedAddr;

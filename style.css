@@ -129,6 +129,13 @@ body.hide-safety .safety-line{display:none}
 
 /* connection + battery (app only) */
 .conn-pill{font-size:.72rem;border-radius:99px;padding:5px 10px;white-space:nowrap;border:1px solid var(--line);background:var(--panel2)}.conn-pill.on{background:var(--grn-bg);color:var(--grn-fg);border-color:var(--grn-bd)}
+.steps-card{border:1px solid var(--line);border-radius:12px;padding:4px 12px;margin-bottom:12px;background:var(--panel2)}
+.step-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.step-row:last-child{border-bottom:0}
+.step-badge{font-size:.72rem;font-weight:700;border-radius:99px;padding:4px 10px;white-space:nowrap;border:1px solid var(--line);background:var(--panel2);color:var(--text);opacity:.75}
+.step-badge.ok{background:var(--grn-bg);color:var(--grn-fg);border-color:var(--grn-bd);opacity:1}
+.step-badge.warn{background:var(--amb-bg);color:var(--amb-fg);border-color:var(--amb-bd);opacity:1}
+.step-badge.bad{background:var(--red-bg);color:var(--red-fg);border-color:var(--red-bd);opacity:1}
 .volt-pill{display:inline-flex;align-items:baseline;gap:3px;border-radius:99px;padding:4px 10px;font-size:.78rem;font-weight:700;border:1px solid var(--line);background:var(--panel2);color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:92px;justify-content:center;cursor:pointer}
 .volt-pill b{font-size:1.05rem}.volt-pill small{font-size:.66rem;font-weight:700;opacity:.9}
 .volt-pill.red{background:var(--red-bg);border-color:var(--red-bd);color:var(--red-fg)}.volt-pill.amber{background:var(--amb-bg);border-color:var(--amb-bd);color:var(--amb-fg)}.volt-pill.green{background:var(--grn-bg);border-color:var(--grn-bd);color:var(--grn-fg)}.volt-pill.blue{background:var(--blu-bg);border-color:var(--blu-bd);color:var(--blu-fg)}
