@@ -476,12 +476,20 @@ $('voltPill').addEventListener('click', () => go('live'));
 // quit the app the moment there is nowhere left to go back to in the page's own history — so it
 // often exits instead of going to the previous screen. This makes it behave like the on-screen
 // back arrow: go to the parent screen, and only exit the app from the Home screen.
-document.addEventListener('backButton', () => {
-  const { name } = parseHash();
-  if (navDepth > 0) { history.back(); return; }
-  if (name !== 'home') { goTab(PARENT[name] || 'home'); return; }
-  try { const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (App && App.exitApp) App.exitApp(); } catch (e) { /* ignore */ }
-});
+// IMPORTANT: the @capacitor/app plugin delivers this through its own plugin listener
+// (Capacitor.Plugins.App.addListener), not as a plain document/window DOM event — a plain
+// document.addEventListener('backButton', ...) here never fires at all, which is why this
+// previously looked implemented but did nothing on a real phone.
+(function bindHardwareBack() {
+  const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (!App || !App.addListener) return; // not native (web/demo preview): nothing to bind
+  App.addListener('backButton', () => {
+    const { name } = parseHash();
+    if (navDepth > 0) { history.back(); return; }
+    if (name !== 'home') { goTab(PARENT[name] || 'home'); return; }
+    try { if (App.exitApp) App.exitApp(); } catch (e) { /* ignore */ }
+  });
+})();
 
 /* ======================= REPORT (diagnose → results) ======================= */
 let pendingDiagnose = false;
